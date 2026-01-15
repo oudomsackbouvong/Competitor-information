@@ -850,11 +850,9 @@
 
         // ===== Hard refresh that REALLY clears state =====
         async function hardRefreshAfterSubmit() {
-            // clear any form draft / state
             try { localStorage.removeItem("competitor_form_draft"); } catch (e) { }
             try { sessionStorage.clear(); } catch (e) { }
 
-            // clear Cache Storage (SW caches)
             try {
                 if ("caches" in window) {
                     const keys = await caches.keys();
@@ -862,7 +860,6 @@
                 }
             } catch (e) { }
 
-            // unregister all service workers (avoid old SW controlling navigation)
             try {
                 if ("serviceWorker" in navigator) {
                     const regs = await navigator.serviceWorker.getRegistrations();
@@ -1163,7 +1160,7 @@
             }
         });
 
-        // ===== Export =====
+        // ===== Export (FIXED: no stack depth + fetch all) =====
         async function ensureExportLogin() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) return true;
@@ -1179,6 +1176,57 @@
                 return false;
             }
             return true;
+        }
+
+        function safeJsonStringify(value, maxLen = 32000) {
+            try {
+                const seen = new WeakSet();
+                const s = JSON.stringify(value, (k, v) => {
+                    if (typeof v === "object" && v !== null) {
+                        if (seen.has(v)) return "[Circular]";
+                        seen.add(v);
+                    }
+                    return v;
+                });
+                if (!s) return "";
+                return s.length > maxLen ? (s.slice(0, maxLen) + "…(truncated)") : s;
+            } catch (e) {
+                return String(value ?? "");
+            }
+        }
+
+        function toExcelValue(v) {
+            if (v === null || v === undefined) return "";
+            if (typeof v === "number" || typeof v === "string" || typeof v === "boolean") return v;
+            if (v instanceof Date) return v.toISOString();
+            if (Array.isArray(v) || typeof v === "object") return safeJsonStringify(v);
+            return String(v);
+        }
+
+        async function fetchAllCompetitorInfoPaged() {
+            const pageSize = 2000; // ปรับได้ 1000/2000/5000
+            let all = [];
+            let from = 0;
+
+            while (true) {
+                $("exportMsg").textContent = `Fetching data... (${all.length} records loaded)`;
+
+                const { data, error } = await supabase
+                    .from("competitor_info")
+                    .select("*")
+                    .order("created_at", { ascending: false })
+                    .range(from, from + pageSize - 1);
+
+                if (error) throw error;
+                if (!data || data.length === 0) break;
+
+                all = all.concat(data);
+
+                if (data.length < pageSize) break;
+                from += pageSize;
+            }
+
+            return all;
         }
 
         $("btnExport").addEventListener("click", async () => {
@@ -1198,13 +1246,7 @@
                 }
 
                 $("exportMsg").textContent = "Fetching data...";
-
-                const { data, error } = await supabase
-                    .from("competitor_info")
-                    .select("*")
-                    .order("created_at", { ascending: false });
-
-                if (error) throw error;
+                const data = await fetchAllCompetitorInfoPaged(); // ✅ fetch all safely
 
                 $("exportMsg").textContent = "Loading lookup tables...";
 
@@ -1238,73 +1280,104 @@
                     "WH02 Width (m)", "WH02 Length (m)", "WH02 Height (m)", "WH02 Size (m²)", "WH02 Capacity (Cases)",
                     "Total Capacity (Cases)",
                     "Big Truck", "Small Truck", "Sa leng (Tricycle)", "Tuk Tuk", "Forklift", "Hand-lift", "Total Vehicles",
-                    "Created At"
+                    "Created At",
+                    "Extra (JSON/Array)" // ✅ รองรับ array/json ทั้งหมด (กันพัง)
                 ];
 
                 const rows = (data || []).map((r, idx) => {
-                    const beer = r.beer ?? 0;
-                    const dw = r.dw ?? 0;
-                    const csd = r.csd ?? 0;
-                    const energy = r.energy ?? 0;
+                    const beer = Number(r.beer ?? 0);
+                    const dw = Number(r.dw ?? 0);
+                    const csd = Number(r.csd ?? 0);
+                    const energy = Number(r.energy ?? 0);
                     const sales_total = beer + dw + csd + energy;
 
-                    const wh01_width = r.wh01_width ?? 0;
-                    const wh01_length = r.wh01_length ?? 0;
-                    const wh01_height = r.wh01_height ?? 0;
+                    const wh01_width = Number(r.wh01_width ?? 0);
+                    const wh01_length = Number(r.wh01_length ?? 0);
+                    const wh01_height = Number(r.wh01_height ?? 0);
                     const wh01_size_m2 = wh01_width * wh01_length;
                     const wh01_capacity_cases = ((wh01_size_m2 / 1.2) * 90 * 2) * 0.7;
 
-                    const wh02_width = r.wh02_width ?? 0;
-                    const wh02_length = r.wh02_length ?? 0;
-                    const wh02_height = r.wh02_height ?? 0;
+                    const wh02_width = Number(r.wh02_width ?? 0);
+                    const wh02_length = Number(r.wh02_length ?? 0);
+                    const wh02_height = Number(r.wh02_height ?? 0);
                     const wh02_size_m2 = wh02_width * wh02_length;
                     const wh02_capacity_cases = ((wh02_size_m2 / 1.2) * 90 * 2) * 0.7;
 
                     const total_capacity_case = wh01_capacity_cases + wh02_capacity_cases;
 
-                    const big_truck = r.big_truck ?? 0;
-                    const small_truck = r.small_truck ?? 0;
-                    const saleng_tricycle = r.saleng_tricycle ?? 0;
-                    const tuk_tuk = r.tuk_tuk ?? 0;
-                    const forklift = r.forklift ?? 0;
-                    const hand_lift = r.hand_lift ?? 0;
+                    const big_truck = Number(r.big_truck ?? 0);
+                    const small_truck = Number(r.small_truck ?? 0);
+                    const saleng_tricycle = Number(r.saleng_tricycle ?? 0);
+                    const tuk_tuk = Number(r.tuk_tuk ?? 0);
+                    const forklift = Number(r.forklift ?? 0);
+                    const hand_lift = Number(r.hand_lift ?? 0);
                     const total_vehicles = big_truck + small_truck + saleng_tricycle + tuk_tuk + forklift + hand_lift;
+
+                    // รวม object/array ที่มีใน record ไว้เป็น JSON string ช่องเดียว (ไม่ทำให้ xlsx crash)
+                    const extraObj = {};
+                    for (const [k, v] of Object.entries(r)) {
+                        if (v && (Array.isArray(v) || typeof v === "object")) extraObj[k] = v;
+                    }
+                    const extraJson = Object.keys(extraObj).length ? safeJsonStringify(extraObj) : "";
 
                     return [
                         idx + 1,
-                        posMap[r.position_id] ?? r.position_id ?? "",
-                        nameMap[r.name_id] ?? r.name_id ?? "",
-                        typeMap[r.type_id] ?? r.type_id ?? "",
-                        r.dist_name ?? "",
-                        r.contact_number ?? "",
-                        r.village ?? "",
-                        distMap[r.district_id] ?? r.district_id ?? "",
-                        provMap[r.province_id] ?? r.province_id ?? "",
-                        areaMap[r.area_id] ?? r.area_id ?? "",
-                        r.dsd_truck ?? "",
-                        r.salesman ?? "",
-                        r.gps_lat ?? "",
-                        r.gps_lng ?? "",
+                        posMap[r.position_id] ?? (r.position_id ?? ""),
+                        nameMap[r.name_id] ?? (r.name_id ?? ""),
+                        typeMap[r.type_id] ?? (r.type_id ?? ""),
+                        toExcelValue(r.dist_name),
+                        toExcelValue(r.contact_number),
+                        toExcelValue(r.village),
+                        distMap[r.district_id] ?? (r.district_id ?? ""),
+                        provMap[r.province_id] ?? (r.province_id ?? ""),
+                        areaMap[r.area_id] ?? (r.area_id ?? ""),
+                        toExcelValue(r.dsd_truck),
+                        toExcelValue(r.salesman),
+                        toExcelValue(r.gps_lat),
+                        toExcelValue(r.gps_lng),
+
                         beer, dw, csd, energy, sales_total.toFixed(2),
-                        wh01_width || "", wh01_length || "", wh01_height || "", (wh01_size_m2 ? wh01_size_m2.toFixed(2) : ""), (wh01_capacity_cases ? wh01_capacity_cases.toFixed(2) : ""),
-                        wh02_width || "", wh02_length || "", wh02_height || "", (wh02_size_m2 ? wh02_size_m2.toFixed(2) : ""), (wh02_capacity_cases ? wh02_capacity_cases.toFixed(2) : ""),
+
+                        wh01_width || "", wh01_length || "", wh01_height || "",
+                        (wh01_size_m2 ? wh01_size_m2.toFixed(2) : ""),
+                        (wh01_capacity_cases ? wh01_capacity_cases.toFixed(2) : ""),
+
+                        wh02_width || "", wh02_length || "", wh02_height || "",
+                        (wh02_size_m2 ? wh02_size_m2.toFixed(2) : ""),
+                        (wh02_capacity_cases ? wh02_capacity_cases.toFixed(2) : ""),
+
                         (total_capacity_case ? total_capacity_case.toFixed(2) : ""),
+
                         big_truck, small_truck, saleng_tricycle, tuk_tuk, forklift, hand_lift, total_vehicles,
-                        r.created_at ?? ""
+
+                        toExcelValue(r.created_at),
+
+                        extraJson
                     ];
                 });
 
-                const aoa = [headers, ...rows];
-                const ws = XLSX.utils.aoa_to_sheet(aoa);
-                ws["!cols"] = headers.map((h) => ({ wch: Math.min(Math.max(h.length + 2, 12), 28) }));
-
+                // ✅ split into multiple sheets to avoid huge memory crash
                 const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Competitor Info");
-                XLSX.writeFile(wb, "competitor_report.xlsx");
+                const chunkSize = 50000; // 50k rows per sheet
+                const total = rows.length;
 
+                for (let start = 0, sheetNo = 1; start < total; start += chunkSize, sheetNo++) {
+                    $("exportMsg").textContent = `Creating Excel... (sheet ${sheetNo}, rows ${start + 1}-${Math.min(start + chunkSize, total)})`;
+
+                    const chunkRows = rows.slice(start, start + chunkSize);
+                    const aoa = [headers, ...chunkRows];
+
+                    const ws = XLSX.utils.aoa_to_sheet(aoa);
+                    ws["!cols"] = headers.map((h) => ({ wch: Math.min(Math.max(String(h).length + 2, 12), 28) }));
+
+                    XLSX.utils.book_append_sheet(wb, ws, `Competitor ${sheetNo}`);
+                }
+
+                XLSX.writeFile(wb, "competitor_report.xlsx");
                 $("exportMsg").textContent = `Export successful ✅ (${rows.length} records)`;
             } catch (e) {
                 $("exportMsg").textContent = "Export failed: " + (e?.message || e);
+                console.error(e);
             } finally {
                 setTimeout(() => (btn.disabled = false), 800);
             }
