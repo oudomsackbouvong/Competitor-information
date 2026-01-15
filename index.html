@@ -1232,24 +1232,25 @@
         $("btnExport").addEventListener("click", async () => {
             const btn = $("btnExport");
             btn.disabled = true;
-
             try {
-                const ok = await ensureExportLogin();
-                if (!ok) {
-                    $("exportMsg").textContent = "Export cancelled";
-                    return;
-                }
-
-                if (typeof XLSX === "undefined") {
-                    $("exportMsg").textContent = "Export failed: XLSX is not loaded (XLSX is undefined) — check xlsx CDN";
+                // 1. Verify Login
+                const loggedIn = await ensureExportLogin();
+                if (!loggedIn) {
+                    alert("Admin login required to export.");
                     return;
                 }
 
                 $("exportMsg").textContent = "Fetching data...";
-                const data = await fetchAllCompetitorInfoPaged(); // ✅ fetch all safely
+                const data = await fetchAllCompetitorInfoPaged(); // fetch all safely
 
-                $("exportMsg").textContent = "Loading lookup tables...";
+                if (!data || data.length === 0) {
+                    alert("No data found to export.");
+                    return;
+                }
 
+                $("exportMsg").textContent = "Preparing Excel...";
+
+                // 1.5 Load Lookup Maps (Fix for posMap undefined)
                 const [positions, names, types, provinces, districts, areas] = await Promise.all([
                     supabase.from("positions").select("id,label").then(r => r.data || []),
                     supabase.from("competitor_names").select("id,label").then(r => r.data || []),
@@ -1266,120 +1267,61 @@
                 const distMap = Object.fromEntries(districts.map(x => [x.id, x.label]));
                 const areaMap = Object.fromEntries(areas.map(x => [x.id, x.label]));
 
-                $("exportMsg").textContent = "Creating Excel...";
+                // 2. Dynamic Headers (Get all unique keys from all records)
+                const allKeys = new Set();
+                data.forEach(r => Object.keys(r).forEach(k => allKeys.add(k)));
 
-                const headers = [
-                    "#",
-                    "Position", "Name", "Type",
-                    "Dist Name", "Contact Number", "Village",
-                    "District", "Province", "Area",
-                    "DSD Truck", "Salesman",
-                    "GPS Lat", "GPS Lng",
-                    "Beer", "DW", "CSD", "Energy", "Sales Total",
-                    "WH01 Width (m)", "WH01 Length (m)", "WH01 Height (m)", "WH01 Size (m²)", "WH01 Capacity (Cases)",
-                    "WH02 Width (m)", "WH02 Length (m)", "WH02 Height (m)", "WH02 Size (m²)", "WH02 Capacity (Cases)",
-                    "Total Capacity (Cases)",
-                    "Big Truck", "Small Truck", "Sa leng (Tricycle)", "Tuk Tuk", "Forklift", "Hand-lift", "Total Vehicles",
-                    "Created At",
-                    "Extra (JSON/Array)" // ✅ รองรับ array/json ทั้งหมด (กันพัง)
-                ];
-
-                const rows = (data || []).map((r, idx) => {
-                    const beer = Number(r.beer ?? 0);
-                    const dw = Number(r.dw ?? 0);
-                    const csd = Number(r.csd ?? 0);
-                    const energy = Number(r.energy ?? 0);
-                    const sales_total = beer + dw + csd + energy;
-
-                    const wh01_width = Number(r.wh01_width ?? 0);
-                    const wh01_length = Number(r.wh01_length ?? 0);
-                    const wh01_height = Number(r.wh01_height ?? 0);
-                    const wh01_size_m2 = wh01_width * wh01_length;
-                    const wh01_capacity_cases = ((wh01_size_m2 / 1.2) * 90 * 2) * 0.7;
-
-                    const wh02_width = Number(r.wh02_width ?? 0);
-                    const wh02_length = Number(r.wh02_length ?? 0);
-                    const wh02_height = Number(r.wh02_height ?? 0);
-                    const wh02_size_m2 = wh02_width * wh02_length;
-                    const wh02_capacity_cases = ((wh02_size_m2 / 1.2) * 90 * 2) * 0.7;
-
-                    const total_capacity_case = wh01_capacity_cases + wh02_capacity_cases;
-
-                    const big_truck = Number(r.big_truck ?? 0);
-                    const small_truck = Number(r.small_truck ?? 0);
-                    const saleng_tricycle = Number(r.saleng_tricycle ?? 0);
-                    const tuk_tuk = Number(r.tuk_tuk ?? 0);
-                    const forklift = Number(r.forklift ?? 0);
-                    const hand_lift = Number(r.hand_lift ?? 0);
-                    const total_vehicles = big_truck + small_truck + saleng_tricycle + tuk_tuk + forklift + hand_lift;
-
-                    // รวม object/array ที่มีใน record ไว้เป็น JSON string ช่องเดียว (ไม่ทำให้ xlsx crash)
-                    const extraObj = {};
-                    for (const [k, v] of Object.entries(r)) {
-                        if (v && (Array.isArray(v) || typeof v === "object")) extraObj[k] = v;
-                    }
-                    const extraJson = Object.keys(extraObj).length ? safeJsonStringify(extraObj) : "";
-
-                    return [
-                        idx + 1,
-                        posMap[r.position_id] ?? (r.position_id ?? ""),
-                        nameMap[r.name_id] ?? (r.name_id ?? ""),
-                        typeMap[r.type_id] ?? (r.type_id ?? ""),
-                        toExcelValue(r.dist_name),
-                        toExcelValue(r.contact_number),
-                        toExcelValue(r.village),
-                        distMap[r.district_id] ?? (r.district_id ?? ""),
-                        provMap[r.province_id] ?? (r.province_id ?? ""),
-                        areaMap[r.area_id] ?? (r.area_id ?? ""),
-                        toExcelValue(r.dsd_truck),
-                        toExcelValue(r.salesman),
-                        toExcelValue(r.gps_lat),
-                        toExcelValue(r.gps_lng),
-
-                        beer, dw, csd, energy, sales_total.toFixed(2),
-
-                        wh01_width || "", wh01_length || "", wh01_height || "",
-                        (wh01_size_m2 ? wh01_size_m2.toFixed(2) : ""),
-                        (wh01_capacity_cases ? wh01_capacity_cases.toFixed(2) : ""),
-
-                        wh02_width || "", wh02_length || "", wh02_height || "",
-                        (wh02_size_m2 ? wh02_size_m2.toFixed(2) : ""),
-                        (wh02_capacity_cases ? wh02_capacity_cases.toFixed(2) : ""),
-
-                        (total_capacity_case ? total_capacity_case.toFixed(2) : ""),
-
-                        big_truck, small_truck, saleng_tricycle, tuk_tuk, forklift, hand_lift, total_vehicles,
-
-                        toExcelValue(r.created_at),
-
-                        extraJson
-                    ];
+                // Sort keys: priority keys first
+                const priority = ["id", "created_at", "position_id", "name_id", "type_id", "province_id", "district_id"];
+                const sortedKeys = Array.from(allKeys).sort((a, b) => {
+                    const ia = priority.indexOf(a);
+                    const ib = priority.indexOf(b);
+                    if (ia !== -1 && ib !== -1) return ia - ib;
+                    if (ia !== -1) return -1;
+                    if (ib !== -1) return 1;
+                    return a.localeCompare(b);
                 });
 
-                // ✅ split into multiple sheets to avoid huge memory crash
+                // 3. Map Data
+                const rows = data.map(r => {
+                    return sortedKeys.map(k => {
+                        let v = r[k];
+                        if (v === null || v === undefined) return "";
+
+                        // Map IDs to Labels
+                        if (k === "position_id") v = posMap[v] ?? v;
+                        if (k === "name_id") v = nameMap[v] ?? v;
+                        if (k === "type_id") v = typeMap[v] ?? v;
+                        if (k === "province_id") v = provMap[v] ?? v;
+                        if (k === "district_id") v = distMap[v] ?? v;
+                        if (k === "area_id") v = areaMap[v] ?? v;
+
+                        if (typeof v === "object") return JSON.stringify(v);
+                        return v;
+                    });
+                });
+
+                // 4. Create Workbook
+                const headers = sortedKeys;
                 const wb = XLSX.utils.book_new();
-                const chunkSize = 50000; // 50k rows per sheet
-                const total = rows.length;
 
-                for (let start = 0, sheetNo = 1; start < total; start += chunkSize, sheetNo++) {
-                    $("exportMsg").textContent = `Creating Excel... (sheet ${sheetNo}, rows ${start + 1}-${Math.min(start + chunkSize, total)})`;
-
-                    const chunkRows = rows.slice(start, start + chunkSize);
-                    const aoa = [headers, ...chunkRows];
-
-                    const ws = XLSX.utils.aoa_to_sheet(aoa);
-                    ws["!cols"] = headers.map((h) => ({ wch: Math.min(Math.max(String(h).length + 2, 12), 28) }));
-
-                    XLSX.utils.book_append_sheet(wb, ws, `Competitor ${sheetNo}`);
+                // Split into sheets of 5,000 for safety
+                const chunkSize = 5000;
+                for (let i = 0; i < rows.length; i += chunkSize) {
+                    const chunk = rows.slice(i, i + chunkSize);
+                    const ws = XLSX.utils.aoa_to_sheet([headers, ...chunk]);
+                    ws["!cols"] = headers.map(h => ({ wch: 15 }));
+                    XLSX.utils.book_append_sheet(wb, ws, `Data ${Math.floor(i / chunkSize) + 1}`);
                 }
 
-                XLSX.writeFile(wb, "competitor_report.xlsx");
-                $("exportMsg").textContent = `Export successful ✅ (${rows.length} records)`;
+                XLSX.writeFile(wb, `competitor_export_${Date.now()}.xlsx`);
+                $("exportMsg").textContent = `Export successful ✅ (${data.length} records)`;
             } catch (e) {
-                $("exportMsg").textContent = "Export failed: " + (e?.message || e);
                 console.error(e);
+                $("exportMsg").textContent = "Export failed: " + (e?.message || e);
+                alert("Export Failed: " + (e?.message || e));
             } finally {
-                setTimeout(() => (btn.disabled = false), 800);
+                setTimeout(() => (btn.disabled = false), 1000);
             }
         });
 
