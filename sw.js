@@ -1,4 +1,4 @@
-const CACHE_NAME = 'comp-form-v2';
+const CACHE_NAME = 'comp-form-v3 COMP_FIX_VERSION';
 
 // cache เฉพาะไฟล์ local ที่คุณคุมได้ (สำคัญ: อย่า cache CDN แบบตายตัว)
 const APP_SHELL = [
