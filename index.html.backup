@@ -1,0 +1,1671 @@
+<!doctype html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Competitor Info System</title>
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+    <style>
+        :root {
+            --bg: #f6f8fc;
+            --card: #ffffff;
+            --card2: #fbfcff;
+            --text: #0f172a;
+            --muted: #64748b;
+            --line: #e2e8f0;
+            --brand: #2563eb;
+            --brand2: #22c55e;
+            --danger: #ef4444;
+            --shadow: 0 10px 30px rgba(2, 6, 23, .08);
+            --radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background:
+                radial-gradient(1200px 700px at 20% 0%, rgba(37, 99, 235, .10), transparent 60%),
+                radial-gradient(1000px 600px at 90% 10%, rgba(34, 197, 94, .10), transparent 55%),
+                var(--bg);
+            color: var(--text);
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 18px auto 28px;
+            padding: 0 14px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: rgba(255, 255, 255, .75);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 10px;
+            z-index: 10;
+        }
+
+        .brand {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .logo {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(37, 99, 235, .95), rgba(59, 130, 246, .85));
+            display: grid;
+            place-items: center;
+            box-shadow: 0 10px 30px rgba(37, 99, 235, .20);
+        }
+
+        .logo i {
+            color: #fff;
+            font-size: 18px;
+        }
+
+        .title .h {
+            font-weight: 900;
+            font-size: 16px;
+            letter-spacing: .2px;
+        }
+
+        .title .s {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 3px;
+        }
+
+        .whoami {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .9);
+            color: var(--text);
+        }
+
+        .btn {
+            border: 1px solid var(--line);
+            background: #fff;
+            color: var(--text);
+            padding: 10px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: .15s ease;
+            font-weight: 750;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(2, 6, 23, .06);
+        }
+
+        .btn:disabled {
+            opacity: .55;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-primary {
+            border: 1px solid rgba(37, 99, 235, .25);
+            background: linear-gradient(135deg, rgba(37, 99, 235, .95), rgba(59, 130, 246, .85));
+            color: #fff;
+        }
+
+        .btn-danger {
+            border: 1px solid rgba(239, 68, 68, .25);
+            background: rgba(239, 68, 68, .08);
+            color: var(--danger);
+        }
+
+        .btn-ghost {
+            background: transparent;
+        }
+
+        .card {
+            margin-top: 14px;
+            border: 1px solid var(--line);
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 14px;
+            box-shadow: var(--shadow);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .card-title {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            font-weight: 900;
+            letter-spacing: .2px;
+            margin: 0;
+            font-size: 15px;
+        }
+
+        .card-title i {
+            color: var(--brand);
+        }
+
+        .card-sub {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 10px 12px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            cursor: pointer;
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+            color: var(--muted);
+            background: #fff;
+            transition: .15s ease;
+            font-weight: 800;
+            font-size: 13px;
+        }
+
+        .tab.active {
+            border-color: rgba(37, 99, 235, .35);
+            color: var(--brand);
+            background: rgba(37, 99, 235, .08);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .grid2 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .grid3 {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        @media (max-width: 980px) {
+            .grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 560px) {
+
+            .grid,
+            .grid2,
+            .grid3 {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                position: static;
+            }
+        }
+
+        label {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        .field {
+            position: relative;
+        }
+
+        .field i {
+            position: absolute;
+            left: 12px;
+            top: 38px;
+            transform: translateY(-50%);
+            color: rgba(100, 116, 139, .9);
+            pointer-events: none;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 11px 12px 11px 38px;
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            background: #fff;
+            color: var(--text);
+            outline: none;
+            transition: .15s ease;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: rgba(37, 99, 235, .45);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, .12);
+        }
+
+        input[readonly] {
+            background: var(--card2);
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .row>* {
+            flex: 1;
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 12px;
+            margin: 8px 0 0;
+        }
+
+        .ok {
+            color: #16a34a;
+        }
+
+        .err {
+            color: var(--danger);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #map {
+            height: 320px;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid var(--line);
+            padding: 10px;
+            font-size: 13px;
+            vertical-align: top;
+        }
+
+        th {
+            background: #f1f5f9;
+            color: #0f172a;
+            font-size: 12px;
+        }
+
+        tr:hover td {
+            background: #f8fafc;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        .tiny {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 6px;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--line);
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="topbar">
+            <div class="brand">
+                <div class="logo"><i class="fa-solid fa-location-dot"></i></div>
+                <div class="title">
+                    <div class="h">Competitor Info System</div>
+                    <div class="s">ฟอร์มเก็บข้อมูลคู่แข่ง + GPS + รายงาน Excel</div>
+                </div>
+            </div>
+
+            <div class="whoami" id="whoami">
+                <span class="pill"><i class="fa-solid fa-circle-user"></i> ยังไม่ได้เข้าสู่ระบบ</span>
+            </div>
+
+            <div class="row" style="max-width: 260px; justify-content:flex-end;">
+                <button id="btnLogout" class="btn btn-danger hidden" type="button">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </button>
+            </div>
+        </div>
+
+        <!-- AUTH VIEW -->
+        <div id="viewAuth" class="card">
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title"><i class="fa-solid fa-shield-halved"></i> เข้าสู่ระบบ</h3>
+                    <p class="card-sub">ใช้ username + password เพื่อเข้าใช้งานระบบ</p>
+                </div>
+                <div class="tabs">
+                    <div class="tab active" id="tabLogin"><i class="fa-solid fa-arrow-right-to-bracket"></i> Login</div>
+                    <div class="tab" id="tabSignup"><i class="fa-solid fa-user-plus"></i> Register</div>
+                </div>
+            </div>
+
+            <div id="panelLogin">
+                <div class="grid2">
+                    <div class="field">
+                        <label><i class="fa-solid fa-user"></i> Username</label>
+                        <i class="fa-solid fa-user"></i>
+                        <input id="login_username" placeholder="เช่น somchai" />
+                    </div>
+                    <div class="field">
+                        <label><i class="fa-solid fa-key"></i> Password</label>
+                        <i class="fa-solid fa-key"></i>
+                        <input id="login_password" type="password" placeholder="••••••••" />
+                    </div>
+                </div>
+                <div class="row" style="margin-top:12px;">
+                    <button id="btnLogin" class="btn btn-primary" type="button">
+                        <i class="fa-solid fa-lock-open"></i> Login
+                    </button>
+                </div>
+                <p class="muted" id="authMsg"></p>
+            </div>
+
+            <div id="panelSignup" class="hidden">
+                <div class="grid2">
+                    <div class="field">
+                        <label><i class="fa-solid fa-user-plus"></i> Username</label>
+                        <i class="fa-solid fa-user"></i>
+                        <input id="signup_username" placeholder="เช่น somchai" />
+                    </div>
+                    <div class="field">
+                        <label><i class="fa-solid fa-key"></i> Password</label>
+                        <i class="fa-solid fa-key"></i>
+                        <input id="signup_password" type="password" placeholder="ตั้งรหัสผ่าน" />
+                    </div>
+                </div>
+                <div class="row" style="margin-top:12px;">
+                    <button id="btnSignup" class="btn btn-primary" type="button">
+                        <i class="fa-solid fa-user-check"></i> Register
+                    </button>
+                </div>
+                <p class="muted" id="signupMsg"></p>
+            </div>
+        </div>
+
+        <!-- APP VIEW -->
+        <div id="viewApp" class="hidden">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title"><i class="fa-solid fa-grid-2"></i> เมนูระบบ</h3>
+                        <p class="card-sub">User กรอกได้อย่างเดียว / Admin จัดการ dropdown + user + export</p>
+                    </div>
+                    <div class="tabs" id="appTabs">
+                        <div class="tab active" data-view="form"><i class="fa-solid fa-pen-to-square"></i> Form</div>
+                        <div class="tab hidden" data-view="admin" id="tabAdmin"><i
+                                class="fa-solid fa-screwdriver-wrench"></i> Admin Panel</div>
+                    </div>
+                </div>
+                <div class="muted" id="appMsg"></div>
+            </div>
+
+            <!-- FORM VIEW -->
+            <div id="viewForm">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i class="fa-solid fa-clipboard-list"></i> ฟอร์มเก็บข้อมูลคู่แข่ง
+                            </h3>
+                            <p class="card-sub">Dropdown ดึงจาก Supabase / บันทึกพิกัดตอน Submit</p>
+                        </div>
+                        <div class="pill"><i class="fa-solid fa-circle-info"></i> กรอกให้ครบ และปักหมุดก่อน Submit</div>
+                    </div>
+
+                    <div class="grid">
+                        <div class="field">
+                            <label><i class="fa-solid fa-briefcase"></i> Position</label>
+                            <i class="fa-solid fa-briefcase"></i>
+                            <select id="position_id"></select>
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-tag"></i> Name</label>
+                            <i class="fa-solid fa-tag"></i>
+                            <select id="name_id"></select>
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-layer-group"></i> Type</label>
+                            <i class="fa-solid fa-layer-group"></i>
+                            <select id="type_id"></select>
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-store"></i> Dist Name*</label>
+                            <i class="fa-solid fa-store"></i>
+                            <input id="dist_name" placeholder="Distributor / ร้าน / จุดขาย" />
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-phone"></i> Contact Number*</label>
+                            <i class="fa-solid fa-phone"></i>
+                            <input id="contact_number" placeholder="020xxxxxxx" />
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-people-roof"></i> Village</label>
+                            <i class="fa-solid fa-people-roof"></i>
+                            <input id="village" />
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-map"></i> Province</label>
+                            <i class="fa-solid fa-map"></i>
+                            <select id="province_id"></select>
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-map-pin"></i> District</label>
+                            <i class="fa-solid fa-map-pin"></i>
+                            <select id="district_id"></select>
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-road"></i> Area</label>
+                            <i class="fa-solid fa-road"></i>
+                            <select id="area_id"></select>
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-truck"></i> DSD Truck</label>
+                            <i class="fa-solid fa-truck"></i>
+                            <input id="dsd_truck" placeholder="เช่น DSD-01 / plate / detail" />
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-user-tie"></i> Salesman (text)</label>
+                            <i class="fa-solid fa-user-tie"></i>
+                            <input id="salesman" type="text" placeholder="เช่น 2 คน / นาย A / ทีม 3" />
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-location-crosshairs"></i> GPS Latitude*</label>
+                            <i class="fa-solid fa-location-crosshairs"></i>
+                            <input id="gps_lat" readonly />
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-location-crosshairs"></i> GPS Longitude*</label>
+                            <i class="fa-solid fa-location-crosshairs"></i>
+                            <input id="gps_lng" readonly />
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-signal"></i> สถานะ</label>
+                            <i class="fa-solid fa-signal"></i>
+                            <input id="status" readonly value="พร้อมกรอกข้อมูล" />
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="card" style="background: rgba(12,23,48,.55); border-color: rgba(255,255,255,.08);">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title"><i class="fa-solid fa-map-location-dot"></i> ปักหมุดตำแหน่ง</h3>
+                                <p class="card-sub">คลิกบนแผนที่เพื่อปักหมุด หรือกดใช้ตำแหน่งปัจจุบัน</p>
+                            </div>
+                            <div class="row" style="max-width: 420px; justify-content:flex-end;">
+                                <button id="btnMyLoc" class="btn btn-primary" type="button">
+                                    <i class="fa-solid fa-crosshairs"></i> ใช้ตำแหน่งปัจจุบัน
+                                </button>
+                                <button id="btnClearPin" class="btn btn-ghost" type="button">
+                                    <i class="fa-solid fa-eraser"></i> ล้างหมุด
+                                </button>
+                            </div>
+                        </div>
+                        <div id="map"></div>
+                        <div class="tiny"><i class="fa-solid fa-triangle-exclamation"></i> ต้องมีหมุดก่อน Submit
+                            เพื่อบันทึกพิกัด</div>
+                    </div>
+                </div>
+
+                <!-- (ส่วน Sales / Warehouse / Vehicle / Submit เหมือนเดิม ไม่เปลี่ยน layout) -->
+                <!-- ... โค้ดส่วนนี้คุณมีอยู่แล้ว ผมคงไว้เดิม ... -->
+
+                <!-- Sales Volume -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i class="fa-solid fa-chart-column"></i> Sales Volume / Month</h3>
+                            <p class="card-sub">Sales Total จะคำนวณอัตโนมัติจาก Beer + DW + CSD + Energy</p>
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="field"><label><i class="fa-solid fa-beer-mug-empty"></i> Beer</label><i
+                                class="fa-solid fa-beer-mug-empty"></i><input id="beer" type="number" step="0.01"
+                                value="0"></div>
+                        <div class="field"><label><i class="fa-solid fa-droplet"></i> DW</label><i
+                                class="fa-solid fa-droplet"></i><input id="dw" type="number" step="0.01" value="0">
+                        </div>
+                        <div class="field"><label><i class="fa-solid fa-bottle-water"></i> CSD</label><i
+                                class="fa-solid fa-bottle-water"></i><input id="csd" type="number" step="0.01"
+                                value="0"></div>
+                        <div class="field"><label><i class="fa-solid fa-bolt"></i> Energy</label><i
+                                class="fa-solid fa-bolt"></i><input id="energy" type="number" step="0.01" value="0">
+                        </div>
+                        <div class="field"><label><i class="fa-solid fa-calculator"></i> Sales Total*</label><i
+                                class="fa-solid fa-calculator"></i><input id="sales_total" readonly></div>
+                    </div>
+                </div>
+
+                <!-- Warehouse 01 -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i class="fa-solid fa-warehouse"></i> Warehouse 01</h3>
+                            <p class="card-sub">WH Size = width * length / Capacity = (((size/1.2)*90*2)*0.7)</p>
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="field"><label><i class="fa-solid fa-ruler-horizontal"></i> Width (m)</label><i
+                                class="fa-solid fa-ruler-horizontal"></i><input id="wh01_width" type="number"
+                                step="0.01"></div>
+                        <div class="field"><label><i class="fa-solid fa-ruler"></i> Length (m)</label><i
+                                class="fa-solid fa-ruler"></i><input id="wh01_length" type="number" step="0.01"></div>
+                        <div class="field"><label><i class="fa-solid fa-up-down"></i> Height (m)</label><i
+                                class="fa-solid fa-up-down"></i><input id="wh01_height" type="number" step="0.01"></div>
+                        <div class="field"><label><i class="fa-solid fa-square"></i> WH Size (m2)</label><i
+                                class="fa-solid fa-square"></i><input id="wh01_size_m2" readonly></div>
+                        <div class="field"><label><i class="fa-solid fa-boxes-stacked"></i> WH Capacity
+                                (Cases)*</label><i class="fa-solid fa-boxes-stacked"></i><input id="wh01_capacity_cases"
+                                readonly></div>
+                    </div>
+                </div>
+
+                <!-- Warehouse 02 -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i class="fa-solid fa-warehouse"></i> Warehouse 02</h3>
+                            <p class="card-sub">รวม Total Capacity อัตโนมัติ</p>
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="field"><label><i class="fa-solid fa-ruler-horizontal"></i> Width (m)</label><i
+                                class="fa-solid fa-ruler-horizontal"></i><input id="wh02_width" type="number"
+                                step="0.01"></div>
+                        <div class="field"><label><i class="fa-solid fa-ruler"></i> Length (m)</label><i
+                                class="fa-solid fa-ruler"></i><input id="wh02_length" type="number" step="0.01"></div>
+                        <div class="field"><label><i class="fa-solid fa-up-down"></i> Height (m)</label><i
+                                class="fa-solid fa-up-down"></i><input id="wh02_height" type="number" step="0.01"></div>
+                        <div class="field"><label><i class="fa-solid fa-square"></i> WH Size (m2)</label><i
+                                class="fa-solid fa-square"></i><input id="wh02_size_m2" readonly></div>
+                        <div class="field"><label><i class="fa-solid fa-boxes-stacked"></i> WH Capacity
+                                (Cases)*</label><i class="fa-solid fa-boxes-stacked"></i><input id="wh02_capacity_cases"
+                                readonly></div>
+                        <div class="field"><label><i class="fa-solid fa-layer-group"></i> Total Capacity
+                                (Case)</label><i class="fa-solid fa-layer-group"></i><input id="total_capacity_case"
+                                readonly></div>
+                    </div>
+                </div>
+
+                <!-- Vehicles -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i class="fa-solid fa-truck-fast"></i> Vehicle Availability</h3>
+                            <p class="card-sub">Total Vehicles คำนวณอัตโนมัติ</p>
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="field"><label><i class="fa-solid fa-truck"></i> Big Truck*</label><i
+                                class="fa-solid fa-truck"></i><input id="big_truck" type="number" step="1" value="0">
+                        </div>
+                        <div class="field"><label><i class="fa-solid fa-truck-ramp-box"></i> Small Truck*</label><i
+                                class="fa-solid fa-truck-ramp-box"></i><input id="small_truck" type="number" step="1"
+                                value="0"></div>
+                        <div class="field"><label><i class="fa-solid fa-motorcycle"></i> Sa leng (Tricycle)</label><i
+                                class="fa-solid fa-motorcycle"></i><input id="saleng_tricycle" type="number" step="1"
+                                value="0"></div>
+                        <div class="field"><label><i class="fa-solid fa-taxi"></i> Tuk Tuk*</label><i
+                                class="fa-solid fa-taxi"></i><input id="tuk_tuk" type="number" step="1" value="0"></div>
+                        <div class="field"><label><i class="fa-solid fa-forklift"></i> Forklift*</label><i
+                                class="fa-solid fa-forklift"></i><input id="forklift" type="number" step="1" value="0">
+                        </div>
+                        <div class="field"><label><i class="fa-solid fa-dolly"></i> Hand-lift*</label><i
+                                class="fa-solid fa-dolly"></i><input id="hand_lift" type="number" step="1" value="0">
+                        </div>
+                        <div class="field"><label><i class="fa-solid fa-sigma"></i> Total Vehicles*</label><i
+                                class="fa-solid fa-sigma"></i><input id="total_vehicles" readonly></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="row" style="justify-content:flex-end;">
+                        <button id="btnSubmit" class="btn btn-primary" type="button">
+                            <i class="fa-solid fa-paper-plane"></i> Submit
+                        </button>
+                    </div>
+                    <p id="msg" class="muted"></p>
+                </div>
+            </div>
+
+            <!-- ADMIN VIEW -->
+            <div id="viewAdmin" class="hidden">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i class="fa-solid fa-screwdriver-wrench"></i> Admin Panel</h3>
+                            <p class="card-sub">จัดการ dropdown / user / export</p>
+                        </div>
+                        <div class="pill"><i class="fa-solid fa-crown"></i> Admin only</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i class="fa-solid fa-file-excel"></i> Export Report (Excel)</h3>
+                            <p class="card-sub">ดึงข้อมูลทั้งหมดจาก competitor_info และ export เป็น .xlsx</p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <button id="btnExport" class="btn btn-primary" type="button">
+                            <i class="fa-solid fa-download"></i> Export Excel
+                        </button>
+                    </div>
+                    <p class="muted" id="exportMsg"></p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i class="fa-solid fa-list-check"></i> จัดการ Dropdown</h3>
+                            <p class="card-sub">เพิ่ม/แก้/ลบ รายการในตาราง dropdown</p>
+                        </div>
+                    </div>
+
+                    <!-- ✅ ปรับ Admin controls: เพิ่ม areas + เพิ่ม namePosition และ hide/show ตาม table -->
+                    <div class="grid3">
+                        <div class="field">
+                            <label><i class="fa-solid fa-table"></i> เลือกตาราง</label>
+                            <i class="fa-solid fa-table"></i>
+                            <select id="ddlTable">
+                                <option value="positions">positions (Position)</option>
+                                <option value="competitor_names">competitor_names (Name)</option>
+                                <option value="competitor_types">competitor_types (Type)</option>
+                                <option value="provinces">provinces (Province)</option>
+                                <option value="districts">districts (District)</option>
+                                <option value="areas">areas (Area)</option>
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-plus"></i> เพิ่มรายการใหม่ (label)</label>
+                            <i class="fa-solid fa-plus"></i>
+                            <input id="newLabel" placeholder="เช่น Manager / Vientiane / Urban" />
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-link"></i> เงื่อนไขเพิ่มเติม (ถ้ามี)</label>
+                            <i class="fa-solid fa-link"></i>
+
+                            <!-- districts: require province_id -->
+                            <select id="districtProvince" class="hidden"></select>
+
+                            <!-- competitor_names: require position_id -->
+                            <select id="namePosition" class="hidden"></select>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-top:10px;">
+                        <button id="btnAddItem" class="btn btn-primary" type="button"><i
+                                class="fa-solid fa-circle-plus"></i> Add</button>
+                        <button id="btnRefreshItems" class="btn" type="button"><i class="fa-solid fa-rotate"></i>
+                            Refresh</button>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:220px;">ID</th>
+                                <th>Label</th>
+                                <th class="right" style="width:190px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsTbody"></tbody>
+                    </table>
+                    <p class="muted" id="adminItemsMsg"></p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i class="fa-solid fa-users-gear"></i> บริหาร User (role / active)
+                            </h3>
+                            <p class="card-sub">จัดการได้ที่ตาราง profiles เท่านั้น</p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <button id="btnLoadUsers" class="btn btn-primary" type="button"><i
+                                class="fa-solid fa-users"></i> Load Users</button>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>username</th>
+                                <th style="width:160px;">role</th>
+                                <th style="width:160px;">active</th>
+                                <th class="right" style="width:140px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTbody"></tbody>
+                    </table>
+
+                    <p class="muted" id="adminUsersMsg"></p>
+                    <p class="tiny"><i class="fa-solid fa-circle-info"></i> การสร้าง/ลบ auth user โดยตรงต้องใช้ service
+                        role key (ไม่ควรฝังในเว็บ)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+
+
+    <script type="module">
+        import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+        const SUPABASE_URL = "https://comtippafialzqwcdduo.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_GYS2jPKnXZqZtaiaTAZ7OA_de9WET-2";
+        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const $ = (id) => document.getElementById(id);
+        const setAuthMsg = (t, ok = true) => { $("authMsg").textContent = t; $("authMsg").className = ok ? "muted ok" : "muted err"; };
+        const setSignupMsg = (t, ok = true) => { $("signupMsg").textContent = t; $("signupMsg").className = ok ? "muted ok" : "muted err"; };
+        const setMsg = (t, ok = true) => { $("msg").textContent = t; $("msg").className = ok ? "muted ok" : "muted err"; };
+        const setAppMsg = (t, ok = true) => { $("appMsg").textContent = t; $("appMsg").className = ok ? "muted ok" : "muted err"; };
+        const num = (id) => Number($(id).value || 0);
+
+        let currentProfile = null;
+
+        // ===== Tabs (Auth) =====
+        $("tabLogin").onclick = () => {
+            $("tabLogin").classList.add("active");
+            $("tabSignup").classList.remove("active");
+            $("panelLogin").classList.remove("hidden");
+            $("panelSignup").classList.add("hidden");
+        };
+        $("tabSignup").onclick = () => {
+            $("tabSignup").classList.add("active");
+            $("tabLogin").classList.remove("active");
+            $("panelSignup").classList.remove("hidden");
+            $("panelLogin").classList.add("hidden");
+        };
+
+        function usernameToEmail(username) {
+            const u = (username || "").trim().toLowerCase();
+            return `${u}@local.app`;
+        }
+
+        function lockButton(btn, ms = 3000) {
+            btn.disabled = true;
+            setTimeout(() => btn.disabled = false, ms);
+        }
+
+        // ===== Auth actions =====
+        $("btnSignup").addEventListener("click", async () => {
+            lockButton($("btnSignup"), 3500);
+            try {
+                const username = $("signup_username").value.trim();
+                const password = $("signup_password").value;
+                if (!username || !password) return setSignupMsg("กรุณาใส่ username และ password", false);
+
+                const email = usernameToEmail(username);
+                const { data, error } = await supabase.auth.signUp({ email, password });
+                if (error) throw error;
+
+                const userId = data.user?.id;
+                if (userId) {
+                    const { error: pe } = await supabase.from("profiles").insert({
+                        user_id: userId,
+                        username,
+                        role: "user",
+                        is_active: true
+                    });
+                    if (pe) console.warn(pe);
+                }
+
+                setSignupMsg("สมัครสำเร็จ ✅ ไปที่แท็บ Login เพื่อเข้าใช้งาน", true);
+            } catch (e) {
+                const msg = e?.message || String(e);
+                if (msg.toLowerCase().includes("signups are disabled")) {
+                    setSignupMsg("สมัครไม่ได้: ระบบปิดการสมัครไว้ กรุณาให้ Admin เปิด Allow signups ใน Supabase", false);
+                } else {
+                    setSignupMsg("สมัครไม่สำเร็จ: " + msg, false);
+                }
+            }
+        });
+
+        $("btnLogin").addEventListener("click", async () => {
+            lockButton($("btnLogin"), 2500);
+            try {
+                const username = $("login_username").value.trim();
+                const password = $("login_password").value;
+                if (!username || !password) return setAuthMsg("กรุณาใส่ username และ password", false);
+
+                const email = usernameToEmail(username);
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+
+                setAuthMsg("Login สำเร็จ ✅", true);
+                await boot();
+            } catch (e) {
+                setAuthMsg("Login ไม่สำเร็จ: " + (e?.message || e), false);
+            }
+        });
+
+        $("btnLogout").addEventListener("click", async () => {
+            await supabase.auth.signOut();
+            currentProfile = null;
+            renderAuth();
+        });
+
+        // ===== App navigation =====
+        function showView(name) {
+            $("viewForm").classList.toggle("hidden", name !== "form");
+            $("viewAdmin").classList.toggle("hidden", name !== "admin");
+            [...document.querySelectorAll("#appTabs .tab")].forEach(t => t.classList.remove("active"));
+            const tab = [...document.querySelectorAll("#appTabs .tab")].find(x => x.dataset.view === name);
+            if (tab) tab.classList.add("active");
+        }
+        document.querySelectorAll("#appTabs .tab").forEach(el => {
+            el.addEventListener("click", () => showView(el.dataset.view));
+        });
+
+        // ===== Dependent dropdowns =====
+        async function loadNamesByPosition(positionId) {
+            const sel = $("name_id");
+            sel.innerHTML = `<option value="">-- กำลังโหลด... --</option>`;
+            sel.disabled = true;
+            sel.value = "";
+
+            if (!positionId) {
+                sel.innerHTML = `<option value="">-- เลือก Position ก่อน --</option>`;
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from("competitor_names")
+                    .select("id,label")
+                    .eq("position_id", positionId)
+                    .order("label");
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    sel.innerHTML = `<option value="">-- ไม่มีข้อมูล --</option>`;
+                    return;
+                }
+
+                sel.innerHTML =
+                    `<option value="">-- เลือก --</option>` +
+                    data.map(x => `<option value="${x.id}">${x.label}</option>`).join("");
+
+                sel.disabled = false;
+            } catch (error) {
+                console.error("Error loading names:", error);
+                sel.innerHTML = `<option value="">-- โหลดไม่สำเร็จ --</option>`;
+                setMsg("โหลด Name ไม่สำเร็จ: " + (error?.message || error), false);
+            }
+        }
+
+        async function loadDistrictsByProvince(provinceId) {
+            const sel = $("district_id");
+            sel.innerHTML = `<option value="">-- กำลังโหลด... --</option>`;
+            sel.disabled = true;
+            sel.value = "";
+
+            if (!provinceId) {
+                sel.innerHTML = `<option value="">-- เลือก Province ก่อน --</option>`;
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from("districts")
+                    .select("id,label")
+                    .eq("province_id", provinceId)
+                    .order("label");
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    sel.innerHTML = `<option value="">-- ไม่มีข้อมูล --</option>`;
+                    return;
+                }
+
+                sel.innerHTML =
+                    `<option value="">-- เลือก --</option>` +
+                    data.map(x => `<option value="${x.id}">${x.label}</option>`).join("");
+
+                sel.disabled = false;
+            } catch (error) {
+                console.error("Error loading districts:", error);
+                sel.innerHTML = `<option value="">-- โหลดไม่สำเร็จ --</option>`;
+                setMsg("โหลด District ไม่สำเร็จ: " + (error?.message || error), false);
+            }
+        }
+
+        // ===== Load profile =====
+        async function loadMyProfile() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return null;
+
+            const { data, error } = await supabase
+                .from("profiles")
+                .select("user_id, username, role, is_active")
+                .eq("user_id", user.id)
+                .maybeSingle();
+
+            if (error) throw error;
+            return data;
+        }
+
+        // ===== Render states =====
+        function renderAuth() {
+            $("viewAuth").classList.remove("hidden");
+            $("viewApp").classList.add("hidden");
+            $("btnLogout").classList.add("hidden");
+            $("whoami").innerHTML = `<span class="pill"><i class="fa-solid fa-circle-user"></i> ยังไม่ได้เข้าสู่ระบบ</span>`;
+        }
+
+        function renderApp() {
+            $("viewAuth").classList.add("hidden");
+            $("viewApp").classList.remove("hidden");
+            $("btnLogout").classList.remove("hidden");
+
+            const role = currentProfile?.role || "user";
+            const active = currentProfile?.is_active ? "active" : "inactive";
+            const icon = role === "admin" ? "fa-crown" : "fa-user";
+            const color = role === "admin" ? "style='border-color: rgba(45,212,191,.35); background: rgba(45,212,191,.08)'" : "";
+
+            $("whoami").innerHTML = `
+        <span class="pill" ${color}><i class="fa-solid ${icon}"></i> ${currentProfile?.username || "-"}</span>
+        <span class="pill"><i class="fa-solid fa-id-badge"></i> ${role}</span>
+        <span class="pill"><i class="fa-solid fa-circle"></i> ${active}</span>
+      `;
+
+            const isAdmin = role === "admin" && currentProfile?.is_active;
+            $("tabAdmin").classList.toggle("hidden", !isAdmin);
+
+            showView("form");
+            setAppMsg(isAdmin ? "โหมด Admin: เห็น Admin Panel / Export / จัดการ dropdown & users" : "โหมด User: กรอกข้อมูลได้อย่างเดียว", true);
+        }
+
+        // ===== Form calculations =====
+        function calcSales() { $("sales_total").value = (num("beer") + num("dw") + num("csd") + num("energy")).toFixed(2); }
+        function calcWH(prefix) {
+            const w = num(prefix + "_width"), l = num(prefix + "_length");
+            const size = w * l;
+            const cap = ((size / 1.2) * 90 * 2) * 0.7; // เพิ่ม *0.7 ตามที่ user แก้ไข
+            $(prefix + "_size_m2").value = (Number.isFinite(size) ? size : 0).toFixed(2);
+            $(prefix + "_capacity_cases").value = (Number.isFinite(cap) ? cap : 0).toFixed(2);
+        }
+        function calcTotalCap() { $("total_capacity_case").value = (num("wh01_capacity_cases") + num("wh02_capacity_cases")).toFixed(2); }
+        function calcVehicles() {
+            const t = num("big_truck") + num("small_truck") + num("saleng_tricycle") + num("tuk_tuk") + num("forklift") + num("hand_lift");
+            $("total_vehicles").value = String(t);
+        }
+
+        ["beer", "dw", "csd", "energy"].forEach(id => $(id).addEventListener("input", calcSales));
+        ["wh01_width", "wh01_length", "wh01_height"].forEach(id => $(id).addEventListener("input", () => { calcWH("wh01"); calcTotalCap(); }));
+        ["wh02_width", "wh02_length", "wh02_height"].forEach(id => $(id).addEventListener("input", () => { calcWH("wh02"); calcTotalCap(); }));
+        ["big_truck", "small_truck", "saleng_tricycle", "tuk_tuk", "forklift", "hand_lift"].forEach(id => $(id).addEventListener("input", calcVehicles));
+
+        // ===== Map =====
+        const map = L.map("map").setView([17.9757, 102.6331], 12);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+        let marker = null;
+
+        function setPin(lat, lng) {
+            if (marker) marker.remove();
+            marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+            marker.on("dragend", () => {
+                const p = marker.getLatLng();
+                $("gps_lat").value = p.lat.toFixed(6);
+                $("gps_lng").value = p.lng.toFixed(6);
+            });
+            $("gps_lat").value = lat.toFixed(6);
+            $("gps_lng").value = lng.toFixed(6);
+        }
+        map.on("click", (e) => setPin(e.latlng.lat, e.latlng.lng));
+
+        $("btnMyLoc").addEventListener("click", () => {
+            if (!navigator.geolocation) return setMsg("เบราว์เซอร์นี้ไม่รองรับ GPS", false);
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const { latitude, longitude } = pos.coords;
+                    setPin(latitude, longitude);
+                    map.setView([latitude, longitude], 16);
+                    $("status").value = "ได้ตำแหน่งปัจจุบันแล้ว";
+                },
+                () => setMsg("ดึงตำแหน่งไม่สำเร็จ (อาจไม่ได้อนุญาต Location)", false),
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        });
+
+        $("btnClearPin").addEventListener("click", () => {
+            if (marker) marker.remove();
+            marker = null;
+            $("gps_lat").value = "";
+            $("gps_lng").value = "";
+            $("status").value = "ล้างหมุดแล้ว";
+        });
+
+        // ===== Dropdown loading =====
+        async function loadOptions(table, selectId) {
+            const { data, error } = await supabase.from(table).select("id,label").order("label");
+            if (error) throw error;
+            const sel = $(selectId);
+            sel.innerHTML = `<option value="">-- เลือก --</option>` + data.map(x => `<option value="${x.id}">${x.label}</option>`).join("");
+        }
+
+        let dropdownHandlersBound = false;
+
+        async function refreshDropdowns() {
+            await loadOptions("positions", "position_id");
+            await loadOptions("competitor_types", "type_id");
+            await loadOptions("provinces", "province_id");
+            await loadOptions("areas", "area_id"); // ✅ เปิด Area
+
+            // name เริ่มต้น disabled จนกว่าจะเลือก position
+            $("name_id").innerHTML = `<option value="">-- เลือก --</option>`;
+            $("name_id").disabled = true;
+
+            $("district_id").innerHTML = `<option value="">-- เลือก --</option>`;
+            $("district_id").disabled = true;
+
+            // ✅ bind handlers แค่ครั้งเดียว (กัน add ซ้ำทุก refresh)
+            if (!dropdownHandlersBound) {
+                $("position_id").addEventListener("change", (e) => loadNamesByPosition(e.target.value));
+                $("province_id").addEventListener("change", (e) => loadDistrictsByProvince(e.target.value));
+                dropdownHandlersBound = true;
+            }
+        }
+
+        // ===== Submit =====
+        $("btnSubmit").addEventListener("click", async () => {
+            try {
+                if (!currentProfile?.is_active) return setMsg("บัญชีนี้ถูกปิดใช้งาน (inactive) กรุณาติดต่อ admin", false);
+
+                const lat = $("gps_lat").value, lng = $("gps_lng").value;
+                if (!lat || !lng) return setMsg("กรุณาปักหมุดก่อน Submit เพื่อบันทึก Latitude/Longitude", false);
+
+                const payload = {
+                    position_id: $("position_id").value || null,
+                    name_id: $("name_id").value || null,
+                    area_id: $("area_id").value || null,
+                    type_id: $("type_id").value || null,
+
+                    // ✅ ขาดของเดิม → ใส่ให้ถูกต้อง
+                    dist_name: $("dist_name").value || null,
+
+                    contact_number: $("contact_number").value || null,
+                    village: $("village").value || null,
+                    district_id: $("district_id").value || null,
+                    province_id: $("province_id").value || null,
+
+                    dsd_truck: $("dsd_truck").value || null,
+                    salesman: $("salesman").value || null, // ✅ text ไม่แปลงเป็น number
+
+                    gps_lat: Number(lat),
+                    gps_lng: Number(lng),
+
+                    beer: num("beer"),
+                    dw: num("dw"),
+                    csd: num("csd"),
+                    energy: num("energy"),
+
+                    wh01_width: $("wh01_width").value ? num("wh01_width") : null,
+                    wh01_length: $("wh01_length").value ? num("wh01_length") : null,
+                    wh01_height: $("wh01_height").value ? num("wh01_height") : null,
+
+                    wh02_width: $("wh02_width").value ? num("wh02_width") : null,
+                    wh02_length: $("wh02_length").value ? num("wh02_length") : null,
+                    wh02_height: $("wh02_height").value ? num("wh02_height") : null,
+
+                    big_truck: parseInt($("big_truck").value || "0", 10),
+                    small_truck: parseInt($("small_truck").value || "0", 10),
+                    saleng_tricycle: parseInt($("saleng_tricycle").value || "0", 10),
+                    tuk_tuk: parseInt($("tuk_tuk").value || "0", 10),
+                    forklift: parseInt($("forklift").value || "0", 10),
+                    hand_lift: parseInt($("hand_lift").value || "0", 10),
+                };
+
+                const { error } = await supabase.from("competitor_info").insert(payload);
+                if (error) throw error;
+
+                $("status").value = "บันทึกสำเร็จ";
+                setMsg("Submit สำเร็จ ✅ บันทึกข้อมูล + พิกัดแล้ว");
+            } catch (e) {
+                setMsg("Submit ไม่สำเร็จ: " + (e?.message || e), false);
+            }
+        });
+
+        // ===== Admin helpers =====
+        async function loadPositionsForNameAdmin() {
+            const { data, error } = await supabase.from("positions").select("id,label").order("label");
+            if (error) throw error;
+            $("namePosition").innerHTML =
+                `<option value="">-- เลือก position_id --</option>` +
+                data.map(x => `<option value="${x.id}">${x.label}</option>`).join("");
+        }
+
+        async function loadProvincesForDistrictAdmin() {
+            const { data, error } = await supabase.from("provinces").select("id,label").order("label");
+            if (error) throw error;
+            $("districtProvince").innerHTML =
+                `<option value="">-- เลือก province_id --</option>` +
+                data.map(x => `<option value="${x.id}">${x.label}</option>`).join("");
+        }
+
+        function toggleAdminExtraInputs() {
+            const table = $("ddlTable").value;
+            $("districtProvince").classList.toggle("hidden", table !== "districts");
+            $("namePosition").classList.toggle("hidden", table !== "competitor_names");
+            $("adminItemsMsg").textContent = "";
+        }
+
+        // ===== Admin: Manage dropdowns =====
+        async function loadItems() {
+            const table = $("ddlTable").value;
+            const { data, error } = await supabase.from(table).select("*").order("label");
+            if (error) throw error;
+
+            const tbody = $("itemsTbody");
+            tbody.innerHTML = "";
+
+            data.forEach(row => {
+                const tr = document.createElement("tr");
+                const label = row.label ?? "";
+                tr.innerHTML = `
+          <td>${row.id}</td>
+          <td>
+            <input data-id="${row.id}" data-field="label" value="${String(label).replaceAll('"', '&quot;')}" />
+            ${table === "districts" ? `<div class="tiny">province_id: ${row.province_id || "-"}</div>` : ``}
+            ${table === "competitor_names" ? `<div class="tiny">position_id: ${row.position_id || "-"}</div>` : ``}
+          </td>
+          <td class="right">
+            <button class="btn" data-act="save" data-id="${row.id}" type="button"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+            <button class="btn btn-danger" data-act="del" data-id="${row.id}" type="button"><i class="fa-solid fa-trash"></i> Delete</button>
+          </td>
+        `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        $("btnRefreshItems").addEventListener("click", async () => {
+            try { await loadItems(); $("adminItemsMsg").textContent = "รีเฟรชแล้ว"; }
+            catch (e) { $("adminItemsMsg").textContent = "โหลดไม่สำเร็จ: " + (e?.message || e); }
+        });
+
+        // ✅ FIX: payload ประกาศก่อนใช้ + ไม่ null + รองรับ districts + competitor_names
+        $("btnAddItem").addEventListener("click", async () => {
+            lockButton($("btnAddItem"), 1200);
+            try {
+                const table = $("ddlTable").value;
+                const label = $("newLabel").value.trim();
+                if (!label) return $("adminItemsMsg").textContent = "กรุณาใส่ label";
+
+                const payload = { label };
+
+                if (table === "districts") {
+                    const province_id = $("districtProvince").value;
+                    if (!province_id) return $("adminItemsMsg").textContent = "เพิ่ม district ต้องเลือก province_id ก่อน";
+                    payload.province_id = province_id;
+                }
+
+                if (table === "competitor_names") {
+                    const position_id = $("namePosition").value;
+                    if (!position_id) return $("adminItemsMsg").textContent = "เพิ่ม Name ต้องเลือก position_id ก่อน";
+                    payload.position_id = position_id;
+                }
+
+                const { error } = await supabase.from(table).insert(payload);
+                if (error) throw error;
+
+                $("newLabel").value = "";
+                $("adminItemsMsg").textContent = "เพิ่มสำเร็จ";
+                await loadItems();
+                await refreshDropdowns();
+            } catch (e) {
+                $("adminItemsMsg").textContent = "เพิ่มไม่สำเร็จ: " + (e?.message || e);
+            }
+        });
+
+        $("itemsTbody").addEventListener("click", async (e) => {
+            const btn = e.target.closest("button");
+            if (!btn) return;
+            const act = btn.dataset.act;
+            const id = btn.dataset.id;
+            const table = $("ddlTable").value;
+
+            try {
+                if (act === "save") {
+                    const input = document.querySelector(`input[data-id="${id}"][data-field="label"]`);
+                    const newLabel = (input?.value || "").trim();
+                    if (!newLabel) return;
+
+                    const { error } = await supabase.from(table).update({ label: newLabel }).eq("id", id);
+                    if (error) throw error;
+
+                    $("adminItemsMsg").textContent = "บันทึกแล้ว";
+                    await refreshDropdowns();
+                }
+
+                if (act === "del") {
+                    const { error } = await supabase.from(table).delete().eq("id", id);
+                    if (error) throw error;
+
+                    $("adminItemsMsg").textContent = "ลบแล้ว";
+                    await loadItems();
+                    await refreshDropdowns();
+                }
+            } catch (err) {
+                $("adminItemsMsg").textContent = "ทำรายการไม่สำเร็จ: " + (err?.message || err);
+            }
+        });
+
+        $("ddlTable").addEventListener("change", async () => {
+            try {
+                toggleAdminExtraInputs();
+                await loadItems();
+            } catch (e) {
+                $("adminItemsMsg").textContent = "โหลดรายการไม่สำเร็จ: " + (e?.message || e);
+            }
+        });
+
+        // ===== Admin: Manage users (คงเดิม) =====
+        $("btnLoadUsers").addEventListener("click", async () => {
+            lockButton($("btnLoadUsers"), 1200);
+            try {
+                const { data, error } = await supabase.from("profiles").select("user_id,username,role,is_active").order("created_at");
+                if (error) throw error;
+
+                const tbody = $("usersTbody");
+                tbody.innerHTML = "";
+                data.forEach(u => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+            <td><i class="fa-solid fa-user"></i> ${u.username}</td>
+            <td>
+              <select data-user="${u.user_id}" data-field="role">
+                <option value="user" ${u.role === "user" ? "selected" : ""}>user</option>
+                <option value="admin" ${u.role === "admin" ? "selected" : ""}>admin</option>
+              </select>
+            </td>
+            <td>
+              <select data-user="${u.user_id}" data-field="is_active">
+                <option value="true" ${u.is_active ? "selected" : ""}>true</option>
+                <option value="false" ${!u.is_active ? "selected" : ""}>false</option>
+              </select>
+            </td>
+            <td class="right">
+              <button class="btn btn-primary" data-act="saveUser" data-user="${u.user_id}" type="button">
+                <i class="fa-solid fa-floppy-disk"></i> Save
+              </button>
+            </td>
+          `;
+                    tbody.appendChild(tr);
+                });
+
+                $("adminUsersMsg").textContent = "โหลด users แล้ว";
+            } catch (e) {
+                $("adminUsersMsg").textContent = "โหลด users ไม่สำเร็จ: " + (e?.message || e);
+            }
+        });
+
+        $("usersTbody").addEventListener("click", async (e) => {
+            const btn = e.target.closest("button");
+            if (!btn || btn.dataset.act !== "saveUser") return;
+
+            try {
+                const userId = btn.dataset.user;
+                const roleSel = document.querySelector(`select[data-user="${userId}"][data-field="role"]`);
+                const activeSel = document.querySelector(`select[data-user="${userId}"][data-field="is_active"]`);
+                const role = roleSel.value;
+                const is_active = activeSel.value === "true";
+
+                const { error } = await supabase.from("profiles").update({ role, is_active }).eq("user_id", userId);
+                if (error) throw error;
+
+                $("adminUsersMsg").textContent = "บันทึก user แล้ว";
+            } catch (err) {
+                $("adminUsersMsg").textContent = "บันทึกไม่สำเร็จ: " + (err?.message || err);
+            }
+        });
+
+        // ===== Export Excel (ปรับปรุงให้ครบถ้วน + แปลง ID เป็นชื่อ) =====
+        $("btnExport").addEventListener("click", async () => {
+            const btn = $("btnExport");
+            btn.disabled = true;
+
+            try {
+                if (typeof XLSX === "undefined") {
+                    $("exportMsg").textContent =
+                        "Export ไม่ได้: XLSX ไม่ถูกโหลด (XLSX is undefined) — กรุณาเช็ค <script src='xlsx...'> หรือเปลี่ยน CDN";
+                    return;
+                }
+
+                $("exportMsg").textContent = "กำลังดึงข้อมูล...";
+
+                // ดึงข้อมูลหลัก
+                const { data, error } = await supabase
+                    .from("competitor_info")
+                    .select("*")
+                    .order("created_at", { ascending: false });
+
+                if (error) throw error;
+
+                // ดึง lookup tables เพื่อแปลง ID เป็นชื่อ
+                $("exportMsg").textContent = "กำลังโหลด lookup tables...";
+
+                const [positions, names, types, provinces, districts, areas] = await Promise.all([
+                    supabase.from("positions").select("id,label").then(r => r.data || []),
+                    supabase.from("competitor_names").select("id,label").then(r => r.data || []),
+                    supabase.from("competitor_types").select("id,label").then(r => r.data || []),
+                    supabase.from("provinces").select("id,label").then(r => r.data || []),
+                    supabase.from("districts").select("id,label").then(r => r.data || []),
+                    supabase.from("areas").select("id,label").then(r => r.data || [])
+                ]);
+
+                // สร้าง lookup maps
+                const posMap = Object.fromEntries(positions.map(x => [x.id, x.label]));
+                const nameMap = Object.fromEntries(names.map(x => [x.id, x.label]));
+                const typeMap = Object.fromEntries(types.map(x => [x.id, x.label]));
+                const provMap = Object.fromEntries(provinces.map(x => [x.id, x.label]));
+                const distMap = Object.fromEntries(districts.map(x => [x.id, x.label]));
+                const areaMap = Object.fromEntries(areas.map(x => [x.id, x.label]));
+
+                $("exportMsg").textContent = "กำลังสร้าง Excel...";
+
+                // Headers ครบถ้วน
+                const headers = [
+                    "#",
+                    "Position",
+                    "Name",
+                    "Type",
+                    "Dist Name",
+                    "Contact Number",
+                    "Village",
+                    "District",
+                    "Province",
+                    "Area",
+                    "DSD Truck",
+                    "Salesman",
+                    "GPS Lat",
+                    "GPS Lng",
+                    // Sales Volume
+                    "Beer",
+                    "DW",
+                    "CSD",
+                    "Energy",
+                    "Sales Total",
+                    // Warehouse 01
+                    "WH01 Width (m)",
+                    "WH01 Length (m)",
+                    "WH01 Height (m)",
+                    "WH01 Size (m²)",
+                    "WH01 Capacity (Cases)",
+                    // Warehouse 02
+                    "WH02 Width (m)",
+                    "WH02 Length (m)",
+                    "WH02 Height (m)",
+                    "WH02 Size (m²)",
+                    "WH02 Capacity (Cases)",
+                    "Total Capacity (Cases)",
+                    // Vehicles
+                    "Big Truck",
+                    "Small Truck",
+                    "Saleng (Tricycle)",
+                    "Tuk Tuk",
+                    "Forklift",
+                    "Hand-lift",
+                    "Total Vehicles",
+                    // Metadata
+                    "Created At"
+                ];
+
+                // แปลงข้อมูล + คำนวณ totals
+                const rows = (data || []).map((r, idx) => {
+                    // คำนวณ sales_total
+                    const beer = r.beer ?? 0;
+                    const dw = r.dw ?? 0;
+                    const csd = r.csd ?? 0;
+                    const energy = r.energy ?? 0;
+                    const sales_total = beer + dw + csd + energy;
+
+                    // คำนวณ WH01
+                    const wh01_width = r.wh01_width ?? 0;
+                    const wh01_length = r.wh01_length ?? 0;
+                    const wh01_height = r.wh01_height ?? 0;
+                    const wh01_size_m2 = wh01_width * wh01_length;
+                    const wh01_capacity_cases = ((wh01_size_m2 / 1.2) * 90 * 2) * 0.7;
+
+                    // คำนวณ WH02
+                    const wh02_width = r.wh02_width ?? 0;
+                    const wh02_length = r.wh02_length ?? 0;
+                    const wh02_height = r.wh02_height ?? 0;
+                    const wh02_size_m2 = wh02_width * wh02_length;
+                    const wh02_capacity_cases = ((wh02_size_m2 / 1.2) * 90 * 2) * 0.7;
+
+                    // Total capacity
+                    const total_capacity_case = wh01_capacity_cases + wh02_capacity_cases;
+
+                    // คำนวณ total vehicles
+                    const big_truck = r.big_truck ?? 0;
+                    const small_truck = r.small_truck ?? 0;
+                    const saleng_tricycle = r.saleng_tricycle ?? 0;
+                    const tuk_tuk = r.tuk_tuk ?? 0;
+                    const forklift = r.forklift ?? 0;
+                    const hand_lift = r.hand_lift ?? 0;
+                    const total_vehicles = big_truck + small_truck + saleng_tricycle + tuk_tuk + forklift + hand_lift;
+
+                    return [
+                        idx + 1,
+                        posMap[r.position_id] ?? r.position_id ?? "",
+                        nameMap[r.name_id] ?? r.name_id ?? "",
+                        typeMap[r.type_id] ?? r.type_id ?? "",
+                        r.dist_name ?? "",
+                        r.contact_number ?? "",
+                        r.village ?? "",
+                        distMap[r.district_id] ?? r.district_id ?? "",
+                        provMap[r.province_id] ?? r.province_id ?? "",
+                        areaMap[r.area_id] ?? r.area_id ?? "",
+                        r.dsd_truck ?? "",
+                        r.salesman ?? "",
+                        r.gps_lat ?? "",
+                        r.gps_lng ?? "",
+                        // Sales
+                        beer,
+                        dw,
+                        csd,
+                        energy,
+                        sales_total.toFixed(2),
+                        // WH01
+                        wh01_width || "",
+                        wh01_length || "",
+                        wh01_height || "",
+                        wh01_size_m2 ? wh01_size_m2.toFixed(2) : "",
+                        wh01_capacity_cases ? wh01_capacity_cases.toFixed(2) : "",
+                        // WH02
+                        wh02_width || "",
+                        wh02_length || "",
+                        wh02_height || "",
+                        wh02_size_m2 ? wh02_size_m2.toFixed(2) : "",
+                        wh02_capacity_cases ? wh02_capacity_cases.toFixed(2) : "",
+                        total_capacity_case ? total_capacity_case.toFixed(2) : "",
+                        // Vehicles
+                        big_truck,
+                        small_truck,
+                        saleng_tricycle,
+                        tuk_tuk,
+                        forklift,
+                        hand_lift,
+                        total_vehicles,
+                        // Metadata
+                        r.created_at ?? ""
+                    ];
+                });
+
+                const aoa = [headers, ...rows];
+                const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+                // ตั้งความกว้างคอลัมน์
+                ws["!cols"] = headers.map((h) => ({ wch: Math.min(Math.max(h.length + 2, 12), 28) }));
+
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Competitor Info");
+
+                XLSX.writeFile(wb, "competitor_report.xlsx");
+
+                $("exportMsg").textContent = `Export สำเร็จ ✅ (${rows.length} records)`;
+            } catch (e) {
+                $("exportMsg").textContent = "Export ไม่สำเร็จ: " + (e?.message || e);
+            } finally {
+                setTimeout(() => (btn.disabled = false), 800);
+            }
+        });
+
+
+        // ===== Boot =====
+        async function boot() {
+            const profile = await loadMyProfile();
+            currentProfile = profile;
+
+            if (!currentProfile) {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const username = (user.email || "").split("@")[0];
+                    await supabase.from("profiles").insert({ user_id: user.id, username, role: "user", is_active: true });
+                    currentProfile = await loadMyProfile();
+                }
+            }
+
+            renderApp();
+
+            try { await refreshDropdowns(); }
+            catch (e) { setMsg("โหลด dropdown ไม่สำเร็จ: " + (e?.message || e), false); }
+
+            const isAdmin = currentProfile?.role === "admin" && currentProfile?.is_active;
+            if (isAdmin) {
+                try {
+                    await loadPositionsForNameAdmin();
+                    await loadProvincesForDistrictAdmin();
+                    toggleAdminExtraInputs();
+                    await loadItems();
+                } catch (e) {
+                    $("adminItemsMsg").textContent = "Admin init error: " + (e?.message || e);
+                }
+            }
+
+            calcSales(); calcWH("wh01"); calcWH("wh02"); calcTotalCap(); calcVehicles();
+        }
+
+        // ===== Session watcher =====
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) await boot();
+        else renderAuth();
+
+        supabase.auth.onAuthStateChange(async (_event, session) => {
+            if (session) await boot();
+            else renderAuth();
+        });
+    </script>
+</body>
+
+</html>

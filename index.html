@@ -1,0 +1,1342 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Competitor Info System</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+    <style>
+        :root {
+            --bg: #f6f8fc;
+            --card: #ffffff;
+            --card2: #fbfcff;
+            --text: #0f172a;
+            --muted: #64748b;
+            --line: #e2e8f0;
+            --brand: #2563eb;
+            --brand2: #22c55e;
+            --danger: #ef4444;
+            --shadow: 0 10px 30px rgba(2, 6, 23, .08);
+            --radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background:
+                radial-gradient(1200px 700px at 20% 0%, rgba(37, 99, 235, .10), transparent 60%),
+                radial-gradient(1000px 600px at 90% 10%, rgba(34, 197, 94, .10), transparent 55%),
+                var(--bg);
+            color: var(--text);
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 18px auto 28px;
+            padding: 0 14px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: rgba(255, 255, 255, .75);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 10px;
+            z-index: 10;
+        }
+
+        .brand {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .logo {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(37, 99, 235, .95), rgba(59, 130, 246, .85));
+            display: grid;
+            place-items: center;
+            box-shadow: 0 10px 30px rgba(37, 99, 235, .20);
+            flex: 0 0 auto;
+        }
+
+        .logo i {
+            color: #fff;
+            font-size: 18px;
+        }
+
+        .title {
+            min-width: 0;
+        }
+
+        .title .h {
+            font-weight: 900;
+            font-size: 16px;
+            letter-spacing: .2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .title .s {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .whoami {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .9);
+            color: var(--text);
+            white-space: nowrap;
+        }
+
+        .btn {
+            border: 1px solid var(--line);
+            background: #fff;
+            color: var(--text);
+            padding: 12px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: .15s ease;
+            font-weight: 750;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(2, 6, 23, .06);
+        }
+
+        .btn:disabled {
+            opacity: .55;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-primary {
+            border: 1px solid rgba(37, 99, 235, .25);
+            background: linear-gradient(135deg, rgba(37, 99, 235, .95), rgba(59, 130, 246, .85));
+            color: #fff;
+        }
+
+        .btn-ghost {
+            background: transparent;
+        }
+
+        .card {
+            margin-top: 14px;
+            border: 1px solid var(--line);
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 14px;
+            box-shadow: var(--shadow);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .card-title {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            font-weight: 900;
+            letter-spacing: .2px;
+            margin: 0;
+            font-size: 15px;
+        }
+
+        .card-title i {
+            color: var(--brand);
+        }
+
+        .card-sub {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .grid2 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        @media (max-width: 980px) {
+            .grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        label {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        .field {
+            position: relative;
+        }
+
+        .field i {
+            position: absolute;
+            left: 12px;
+            top: 38px;
+            transform: translateY(-50%);
+            color: rgba(100, 116, 139, .9);
+            pointer-events: none;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 12px 12px 38px;
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            background: #fff;
+            color: var(--text);
+            outline: none;
+            transition: .15s ease;
+            font-size: 14px;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--brand);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, .15);
+            background: #fff;
+        }
+
+        input[readonly] {
+            background: #f1f5f9;
+            color: #1e293b;
+            font-weight: 700;
+            border-style: dashed;
+        }
+
+        input[readonly].result-field {
+            color: #16a34a;
+            border-color: rgba(22, 163, 74, .3);
+            background: rgba(22, 163, 74, .03);
+        }
+
+        .btn-loading {
+            position: relative;
+            color: transparent !important;
+            pointer-events: none;
+        }
+
+        .btn-loading::after {
+            content: "";
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            top: 50%;
+            left: 50%;
+            margin: -10px 0 0 -10px;
+            border: 3px solid rgba(255, 255, 255, .3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scrollbar-width: none;
+        }
+
+        .quick-actions::-webkit-scrollbar {
+            display: none;
+        }
+
+        .btn-quick {
+            padding: 4px 8px;
+            font-size: 11px;
+            border-radius: 6px;
+            background: #f1f5f9;
+            border: 1px solid var(--line);
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .btn-quick:active {
+            background: var(--brand);
+            color: #fff;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 12px;
+            margin: 8px 0 0;
+            white-space: pre-line;
+        }
+
+        .ok {
+            color: #16a34a;
+        }
+
+        .err {
+            color: var(--danger);
+        }
+
+        #map {
+            height: 320px;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .leaflet-container {
+            touch-action: pan-x pan-y;
+        }
+
+        .tiny {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 6px;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--line);
+            margin: 10px 0;
+        }
+
+        @media (max-width: 560px) {
+
+            .grid,
+            .grid2 {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                position: static;
+                padding: 12px;
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .whoami {
+                justify-content: flex-start;
+            }
+
+            .container {
+                padding: 0 10px;
+                margin-top: 10px;
+            }
+
+            .card {
+                padding: 12px;
+            }
+
+            .card-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+
+            .btn {
+                width: 100%;
+                padding: 14px 14px;
+                border-radius: 14px;
+            }
+
+            input,
+            select,
+            textarea {
+                padding: 13px 12px;
+                font-size: 16px;
+                border-radius: 14px;
+            }
+
+            .field i {
+                display: none !important;
+            }
+
+            #map {
+                height: 360px;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="topbar">
+            <div class="brand">
+                <div class="logo"><i class="fa-solid fa-location-dot"></i></div>
+                <div class="title">
+                    <div class="h">Competitor Info System</div>
+                    <div class="s">Competitor data form + GPS + Excel report</div>
+                </div>
+            </div>
+
+            <div class="whoami" id="whoami">
+                <span class="pill"><i class="fa-solid fa-globe"></i> Public Mode</span>
+                <span class="pill"><i class="fa-solid fa-mobile-screen"></i> Mobile Friendly</span>
+            </div>
+        </div>
+
+        <div id="viewApp">
+            <!-- Export -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title"><i class="fa-solid fa-file-excel"></i> Export Report (Excel)</h3>
+                        <p class="card-sub">Export is available only after logging in when you click Export</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <button id="btnExport" class="btn btn-primary" type="button">
+                        <i class="fa-solid fa-download"></i> Export Excel
+                    </button>
+                </div>
+                <p class="muted" id="exportMsg"></p>
+            </div>
+
+            <div id="viewForm">
+                <!-- FORM -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i class="fa-solid fa-clipboard-list"></i> Competitor Data Form</h3>
+                            <p class="card-sub">Dropdowns loaded from Supabase / GPS saved on Submit</p>
+                        </div>
+                        <div class="pill"><i class="fa-solid fa-circle-info"></i> Fill all required fields and pin
+                            location before Submit</div>
+                    </div>
+
+                    <div class="grid">
+                        <div class="field">
+                            <label><i class="fa-solid fa-briefcase"></i> Position</label>
+                            <i class="fa-solid fa-briefcase"></i>
+                            <select id="position_id"></select>
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-tag"></i> Name</label>
+                            <i class="fa-solid fa-tag"></i>
+                            <select id="name_id"></select>
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-layer-group"></i> Type</label>
+                            <i class="fa-solid fa-layer-group"></i>
+                            <select id="type_id"></select>
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-store"></i> Dist Name*</label>
+                            <i class="fa-solid fa-store"></i>
+                            <input id="dist_name" placeholder="Distributor / shop / outlet" />
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-phone"></i> Contact Number*</label>
+                            <i class="fa-solid fa-phone"></i>
+                            <input id="contact_number" placeholder="020xxxxxxx" />
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-people-roof"></i> Village</label>
+                            <i class="fa-solid fa-people-roof"></i>
+                            <input id="village" />
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-map"></i> Province</label>
+                            <i class="fa-solid fa-map"></i>
+                            <select id="province_id"></select>
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-map-pin"></i> District</label>
+                            <i class="fa-solid fa-map-pin"></i>
+                            <select id="district_id"></select>
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-road"></i> Area</label>
+                            <i class="fa-solid fa-road"></i>
+                            <select id="area_id"></select>
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-truck"></i> DSD Truck</label>
+                            <i class="fa-solid fa-truck"></i>
+                            <input id="dsd_truck" placeholder="DSD-01 / plate / details" />
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-user-tie"></i> Salesman</label>
+                            <i class="fa-solid fa-user-tie"></i>
+                            <input id="salesman" type="text" placeholder="2 people / Mr. A / Team 3" />
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-location-crosshairs"></i> GPS Latitude*</label>
+                            <i class="fa-solid fa-location-crosshairs"></i>
+                            <input id="gps_lat" readonly inputmode="none" class="result-field" />
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-location-crosshairs"></i> GPS Longitude*</label>
+                            <i class="fa-solid fa-location-crosshairs"></i>
+                            <input id="gps_lng" readonly inputmode="none" class="result-field" />
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-signal"></i> Status</label>
+                            <i class="fa-solid fa-signal"></i>
+                            <input id="status" readonly value="Ready" />
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="card" style="background: rgba(12,23,48,.55); border-color: rgba(255,255,255,.08);">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title"><i class="fa-solid fa-map-location-dot"></i> Pin Location</h3>
+                                <p class="card-sub">Tap “Edit pin” then tap on the map to select a new location (Yes/No
+                                    confirmation)</p>
+                            </div>
+                            <div class="row" style="max-width: 520px; justify-content:flex-end;">
+                                <button id="btnMyLoc" class="btn btn-primary" type="button">
+                                    <i class="fa-solid fa-crosshairs"></i> Use Current Location
+                                </button>
+                                <button id="btnEditPin" class="btn" type="button">
+                                    <i class="fa-solid fa-pen"></i> Edit Pin
+                                </button>
+                                <button id="btnClearPin" class="btn btn-ghost" type="button">
+                                    <i class="fa-solid fa-eraser"></i> Clear Pin
+                                </button>
+                            </div>
+                        </div>
+                        <div id="map"></div>
+                        <div class="tiny"><i class="fa-solid fa-triangle-exclamation"></i> You must place a pin before
+                            Submit to save Latitude/Longitude</div>
+                    </div>
+                </div>
+
+                <!-- Sales Volume -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i class="fa-solid fa-chart-column"></i> Sales Volume / Month</h3>
+                            <p class="card-sub">Sales Total is calculated automatically from Beer + DW + CSD + Energy
+                            </p>
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="field">
+                            <label><i class="fa-solid fa-beer-mug-empty"></i> Beer</label>
+                            <i class="fa-solid fa-beer-mug-empty"></i>
+                            <input id="beer" type="number" step="0.01" value="0" inputmode="decimal">
+                            <div class="quick-actions">
+                                <button type="button" class="btn-quick" onclick="addVal('beer', 100)">+100</button>
+                                <button type="button" class="btn-quick" onclick="addVal('beer', 500)">+500</button>
+                                <button type="button" class="btn-quick"
+                                    onclick="$('beer').value=0; calcSales();">Clear</button>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-droplet"></i> DW</label>
+                            <i class="fa-solid fa-droplet"></i>
+                            <input id="dw" type="number" step="0.01" value="0" inputmode="decimal">
+                            <div class="quick-actions">
+                                <button type="button" class="btn-quick" onclick="addVal('dw', 100)">+100</button>
+                                <button type="button" class="btn-quick" onclick="addVal('dw', 500)">+500</button>
+                                <button type="button" class="btn-quick"
+                                    onclick="$('dw').value=0; calcSales();">Clear</button>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-bottle-water"></i> CSD</label>
+                            <i class="fa-solid fa-bottle-water"></i>
+                            <input id="csd" type="number" step="0.01" value="0" inputmode="decimal">
+                            <div class="quick-actions">
+                                <button type="button" class="btn-quick" onclick="addVal('csd', 100)">+100</button>
+                                <button type="button" class="btn-quick" onclick="addVal('csd', 500)">+500</button>
+                                <button type="button" class="btn-quick"
+                                    onclick="$('csd').value=0; calcSales();">Clear</button>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-bolt"></i> Energy</label>
+                            <i class="fa-solid fa-bolt"></i>
+                            <input id="energy" type="number" step="0.01" value="0" inputmode="decimal">
+                            <div class="quick-actions">
+                                <button type="button" class="btn-quick" onclick="addVal('energy', 100)">+100</button>
+                                <button type="button" class="btn-quick" onclick="addVal('energy', 500)">+500</button>
+                                <button type="button" class="btn-quick"
+                                    onclick="$('energy').value=0; calcSales();">Clear</button>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-calculator"></i> Sales Total*</label>
+                            <i class="fa-solid fa-calculator"></i>
+                            <input id="sales_total" readonly class="result-field">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Warehouse 01 -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i class="fa-solid fa-warehouse"></i> Warehouse 01</h3>
+                            <p class="card-sub">WH Size = width * length / Capacity = (((size/1.2)*90*2)*0.7)</p>
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="field">
+                            <label><i class="fa-solid fa-ruler-horizontal"></i> Width (m)</label>
+                            <i class="fa-solid fa-ruler-horizontal"></i>
+                            <input id="wh01_width" type="number" step="0.01" inputmode="decimal">
+                        </div>
+                        <div class="field">
+                            <label><i class="fa-solid fa-ruler"></i> Length (m)</label>
+                            <i class="fa-solid fa-ruler"></i>
+                            <input id="wh01_length" type="number" step="0.01" inputmode="decimal">
+                        </div>
+                        <div class="field">
+                            <label><i class="fa-solid fa-up-down"></i> Height (m)</label>
+                            <i class="fa-solid fa-up-down"></i>
+                            <input id="wh01_height" type="number" step="0.01" inputmode="decimal">
+                        </div>
+                        <div class="field">
+                            <label><i class="fa-solid fa-square"></i> WH Size (m2)</label>
+                            <i class="fa-solid fa-square"></i>
+                            <input id="wh01_size_m2" readonly class="result-field">
+                        </div>
+                        <div class="field">
+                            <label><i class="fa-solid fa-boxes-stacked"></i> WH Capacity (Cases)*</label>
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                            <input id="wh01_capacity_cases" readonly class="result-field">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Warehouse 02 -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i class="fa-solid fa-warehouse"></i> Warehouse 02</h3>
+                            <p class="card-sub">Total capacity is calculated automatically</p>
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="field">
+                            <label><i class="fa-solid fa-ruler-horizontal"></i> Width (m)</label>
+                            <i class="fa-solid fa-ruler-horizontal"></i>
+                            <input id="wh02_width" type="number" step="0.01" inputmode="decimal">
+                        </div>
+                        <div class="field">
+                            <label><i class="fa-solid fa-ruler"></i> Length (m)</label>
+                            <i class="fa-solid fa-ruler"></i>
+                            <input id="wh02_length" type="number" step="0.01" inputmode="decimal">
+                        </div>
+                        <div class="field">
+                            <label><i class="fa-solid fa-up-down"></i> Height (m)</label>
+                            <i class="fa-solid fa-up-down"></i>
+                            <input id="wh02_height" type="number" step="0.01" inputmode="decimal">
+                        </div>
+                        <div class="field">
+                            <label><i class="fa-solid fa-square"></i> WH Size (m2)</label>
+                            <i class="fa-solid fa-square"></i>
+                            <input id="wh02_size_m2" readonly class="result-field">
+                        </div>
+                        <div class="field">
+                            <label><i class="fa-solid fa-boxes-stacked"></i> WH Capacity (Cases)*</label>
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                            <input id="wh02_capacity_cases" readonly class="result-field">
+                        </div>
+                        <div class="field">
+                            <label><i class="fa-solid fa-layer-group"></i> Total Capacity (Cases)</label>
+                            <i class="fa-solid fa-layer-group"></i>
+                            <input id="total_capacity_case" readonly class="result-field">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vehicles -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i class="fa-solid fa-truck-fast"></i> Vehicle Availability</h3>
+                            <p class="card-sub">Total vehicles are calculated automatically</p>
+                        </div>
+                    </div>
+
+                    <div class="grid">
+                        <div class="field">
+                            <label><i class="fa-solid fa-truck"></i> Big Truck*</label>
+                            <i class="fa-solid fa-truck"></i>
+                            <input id="big_truck" type="number" step="1" value="0" inputmode="decimal">
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-truck-ramp-box"></i> Small Truck*</label>
+                            <i class="fa-solid fa-truck-ramp-box"></i>
+                            <input id="small_truck" type="number" step="1" value="0" inputmode="decimal">
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-motorcycle"></i> Sa leng (Tricycle)</label>
+                            <i class="fa-solid fa-motorcycle"></i>
+                            <input id="saleng_tricycle" type="number" step="1" value="0" inputmode="decimal">
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-taxi"></i> Tuk Tuk*</label>
+                            <i class="fa-solid fa-taxi"></i>
+                            <input id="tuk_tuk" type="number" step="1" value="0" inputmode="decimal">
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-forklift"></i> Forklift*</label>
+                            <i class="fa-solid fa-forklift"></i>
+                            <input id="forklift" type="number" step="1" value="0" inputmode="decimal">
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-hand-holding"></i> Hand-lift*</label>
+                            <i class="fa-solid fa-hand-holding"></i>
+                            <input id="hand_lift" type="number" step="1" value="0" inputmode="decimal">
+                        </div>
+
+                        <div class="field">
+                            <label><i class="fa-solid fa-sigma"></i> Total Vehicles*</label>
+                            <i class="fa-solid fa-sigma"></i>
+                            <input id="total_vehicles" readonly class="result-field">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <div class="card">
+                    <div class="row" style="justify-content:flex-end;">
+                        <button id="btnSubmit" class="btn btn-primary" type="button">
+                            <i class="fa-solid fa-paper-plane"></i> Submit
+                        </button>
+                    </div>
+                    <p id="msg" class="muted"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Popup -->
+    <div id="confirmOverlay" class="hidden"
+        style="position:fixed; inset:0; background:rgba(2,6,23,.55); display:flex; align-items:center; justify-content:center; z-index:9999; padding:16px;">
+        <div
+            style="width:min(420px,100%); background:#fff; border-radius:16px; padding:14px; box-shadow:0 20px 50px rgba(2,6,23,.25); border:1px solid #e2e8f0;">
+            <div style="font-weight:900; font-size:16px; margin-bottom:6px;">Confirm Location</div>
+            <div id="confirmText" style="color:#475569; font-size:13px; line-height:1.5; white-space:pre-line;"></div>
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
+                <button id="confirmNo" class="btn" type="button"><i class="fa-solid fa-xmark"></i> No</button>
+                <button id="confirmYes" class="btn btn-primary" type="button"><i class="fa-solid fa-check"></i>
+                    Yes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script type="module">
+        import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+        const SUPABASE_URL = "https://comtippafialzqwcdduo.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_GYS2jPKnXZqZtaiaTAZ7OA_de9WET-2";
+        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const $ = (id) => document.getElementById(id);
+        const setMsg = (t, ok = true) => { $("msg").textContent = t; $("msg").className = ok ? "muted ok" : "muted err"; };
+        const num = (id) => Number($(id).value || 0);
+
+        // ===== Hard refresh that REALLY clears state =====
+        async function hardRefreshAfterSubmit() {
+            // clear any form draft / state
+            try { localStorage.removeItem("competitor_form_draft"); } catch (e) { }
+            try { sessionStorage.clear(); } catch (e) { }
+
+            // clear Cache Storage (SW caches)
+            try {
+                if ("caches" in window) {
+                    const keys = await caches.keys();
+                    await Promise.all(keys.map(k => caches.delete(k)));
+                }
+            } catch (e) { }
+
+            // unregister all service workers (avoid old SW controlling navigation)
+            try {
+                if ("serviceWorker" in navigator) {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(regs.map(r => r.unregister()));
+                }
+            } catch (e) { }
+
+            const base = window.location.origin + window.location.pathname;
+            window.location.replace(base + "?r=" + Date.now());
+        }
+
+        // Quick add buttons
+        window.addVal = (id, v) => {
+            const el = $(id);
+            el.value = (Number(el.value || 0) + v);
+            calcSales();
+        };
+
+        // ===== Form calculations =====
+        function calcSales() { $("sales_total").value = (num("beer") + num("dw") + num("csd") + num("energy")).toFixed(2); }
+
+        function calcWH(prefix) {
+            const w = num(prefix + "_width"), l = num(prefix + "_length");
+            const size = w * l;
+            const cap = ((size / 1.2) * 90 * 2) * 0.7;
+            $(prefix + "_size_m2").value = (Number.isFinite(size) ? size : 0).toFixed(2);
+            $(prefix + "_capacity_cases").value = (Number.isFinite(cap) ? cap : 0).toFixed(2);
+        }
+
+        function calcTotalCap() { $("total_capacity_case").value = (num("wh01_capacity_cases") + num("wh02_capacity_cases")).toFixed(2); }
+
+        function calcVehicles() {
+            const t = num("big_truck") + num("small_truck") + num("saleng_tricycle") + num("tuk_tuk") + num("forklift") + num("hand_lift");
+            $("total_vehicles").value = String(t);
+        }
+
+        ["beer", "dw", "csd", "energy"].forEach(id => $(id).addEventListener("input", calcSales));
+        ["wh01_width", "wh01_length", "wh01_height"].forEach(id => $(id).addEventListener("input", () => { calcWH("wh01"); calcTotalCap(); }));
+        ["wh02_width", "wh02_length", "wh02_height"].forEach(id => $(id).addEventListener("input", () => { calcWH("wh02"); calcTotalCap(); }));
+        ["big_truck", "small_truck", "saleng_tricycle", "tuk_tuk", "forklift", "hand_lift"].forEach(id => $(id).addEventListener("input", calcVehicles));
+
+        // ===== Map =====
+        const map = L.map("map", { tap: true }).setView([17.9757, 102.6331], 12);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+
+        let marker = null;
+        let pinEditMode = false;
+        let pendingLatLng = null;
+
+        setTimeout(() => map.invalidateSize(), 250);
+
+        function setPin(lat, lng) {
+            if (marker) marker.remove();
+            marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+
+            marker.on("dragend", () => {
+                const p = marker.getLatLng();
+                $("gps_lat").value = p.lat.toFixed(6);
+                $("gps_lng").value = p.lng.toFixed(6);
+            });
+
+            $("gps_lat").value = lat.toFixed(6);
+            $("gps_lng").value = lng.toFixed(6);
+            $("status").value = "Location set";
+        }
+
+        function openConfirm(lat, lng) {
+            pendingLatLng = { lat, lng };
+            $("confirmText").textContent = `Use this location?\nLat: ${lat.toFixed(6)}\nLng: ${lng.toFixed(6)}`;
+            $("confirmOverlay").classList.remove("hidden");
+        }
+
+        function closeConfirm() {
+            $("confirmOverlay").classList.add("hidden");
+            pendingLatLng = null;
+        }
+
+        $("confirmNo").addEventListener("click", () => {
+            closeConfirm();
+            $("status").value = "Location selection cancelled";
+        });
+
+        $("confirmYes").addEventListener("click", () => {
+            if (!pendingLatLng) return closeConfirm();
+            setPin(pendingLatLng.lat, pendingLatLng.lng);
+            map.setView([pendingLatLng.lat, pendingLatLng.lng], Math.max(map.getZoom(), 16));
+            pinEditMode = false;
+            closeConfirm();
+        });
+
+        map.on("click", (e) => {
+            if (marker && !pinEditMode) {
+                $("status").value = "Click 'Edit pin' first to place a new pin";
+                return;
+            }
+            openConfirm(e.latlng.lat, e.latlng.lng);
+        });
+
+        $("btnEditPin").addEventListener("click", () => {
+            pinEditMode = true;
+            $("status").value = "Edit mode: tap on the map to pick a new point";
+        });
+
+        $("btnMyLoc").addEventListener("click", () => {
+            if (!navigator.geolocation) return setMsg("This browser does not support GPS", false);
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const { latitude, longitude } = pos.coords;
+                    openConfirm(latitude, longitude);
+                },
+                () => setMsg("Could not get location (permission denied?)", false),
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        });
+
+        $("btnClearPin").addEventListener("click", () => {
+            if (marker) marker.remove();
+            marker = null;
+            $("gps_lat").value = "";
+            $("gps_lng").value = "";
+            pinEditMode = true;
+            $("status").value = "Pin cleared (select a new point)";
+        });
+
+        ["gps_lat", "gps_lng"].forEach(id => {
+            const el = $(id);
+            el.readOnly = true;
+            el.addEventListener("keydown", (ev) => ev.preventDefault());
+            el.addEventListener("paste", (ev) => ev.preventDefault());
+        });
+
+        // ===== Dropdowns =====
+        async function loadNamesByPosition(positionId) {
+            const sel = $("name_id");
+            sel.innerHTML = `<option value="">-- Loading... --</option>`;
+            sel.disabled = true;
+            sel.value = "";
+
+            if (!positionId) {
+                sel.innerHTML = `<option value="">-- Select Position first --</option>`;
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from("competitor_names")
+                    .select("id,label")
+                    .eq("position_id", positionId)
+                    .order("label");
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    sel.innerHTML = `<option value="">-- No data --</option>`;
+                    return;
+                }
+
+                sel.innerHTML = `<option value="">-- Select --</option>` +
+                    data.map(x => `<option value="${x.id}">${x.label}</option>`).join("");
+
+                sel.disabled = false;
+            } catch (error) {
+                console.error("Error loading names:", error);
+                sel.innerHTML = `<option value="">-- Failed to load --</option>`;
+                setMsg("Failed to load Name: " + (error?.message || error), false);
+            }
+        }
+
+        async function loadDistrictsByProvince(provinceId) {
+            const sel = $("district_id");
+            sel.innerHTML = `<option value="">-- Loading... --</option>`;
+            sel.disabled = true;
+            sel.value = "";
+
+            if (!provinceId) {
+                sel.innerHTML = `<option value="">-- Select Province first --</option>`;
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from("districts")
+                    .select("id,label")
+                    .eq("province_id", provinceId)
+                    .order("label");
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    sel.innerHTML = `<option value="">-- No data --</option>`;
+                    return;
+                }
+
+                sel.innerHTML = `<option value="">-- Select --</option>` +
+                    data.map(x => `<option value="${x.id}">${x.label}</option>`).join("");
+
+                sel.disabled = false;
+            } catch (error) {
+                console.error("Error loading districts:", error);
+                sel.innerHTML = `<option value="">-- Failed to load --</option>`;
+                setMsg("Failed to load District: " + (error?.message || error), false);
+            }
+        }
+
+        async function loadOptions(table, selectId) {
+            const { data, error } = await supabase.from(table).select("id,label").order("label");
+            if (error) throw error;
+            const sel = $(selectId);
+            sel.innerHTML = `<option value="">-- Select --</option>` + (data || []).map(x => `<option value="${x.id}">${x.label}</option>`).join("");
+        }
+
+        let dropdownHandlersBound = false;
+
+        async function refreshDropdowns() {
+            await loadOptions("positions", "position_id");
+            await loadOptions("competitor_types", "type_id");
+            await loadOptions("provinces", "province_id");
+            await loadOptions("areas", "area_id");
+
+            $("name_id").innerHTML = `<option value="">-- Select Position first --</option>`;
+            $("name_id").disabled = true;
+
+            $("district_id").innerHTML = `<option value="">-- Select Province first --</option>`;
+            $("district_id").disabled = true;
+
+            if (!dropdownHandlersBound) {
+                $("position_id").addEventListener("change", (e) => loadNamesByPosition(e.target.value));
+                $("province_id").addEventListener("change", (e) => loadDistrictsByProvince(e.target.value));
+                dropdownHandlersBound = true;
+            }
+        }
+
+        // ===== Submit =====
+        $("btnSubmit").addEventListener("click", async () => {
+            const btn = $("btnSubmit");
+
+            try {
+                const lat = $("gps_lat").value, lng = $("gps_lng").value;
+                if (!lat || !lng) return setMsg("Please place a pin before Submit to save Latitude/Longitude", false);
+
+                btn.classList.add("btn-loading");
+                btn.disabled = true;
+
+                const payload = {
+                    position_id: $("position_id").value || null,
+                    name_id: $("name_id").value || null,
+                    area_id: $("area_id").value || null,
+                    type_id: $("type_id").value || null,
+
+                    dist_name: $("dist_name").value || null,
+                    contact_number: $("contact_number").value || null,
+                    village: $("village").value || null,
+                    district_id: $("district_id").value || null,
+                    province_id: $("province_id").value || null,
+
+                    dsd_truck: $("dsd_truck").value || null,
+                    salesman: $("salesman").value || null,
+
+                    gps_lat: Number(lat),
+                    gps_lng: Number(lng),
+
+                    beer: num("beer"),
+                    dw: num("dw"),
+                    csd: num("csd"),
+                    energy: num("energy"),
+
+                    wh01_width: $("wh01_width").value ? num("wh01_width") : null,
+                    wh01_length: $("wh01_length").value ? num("wh01_length") : null,
+                    wh01_height: $("wh01_height").value ? num("wh01_height") : null,
+
+                    wh02_width: $("wh02_width").value ? num("wh02_width") : null,
+                    wh02_length: $("wh02_length").value ? num("wh02_length") : null,
+                    wh02_height: $("wh02_height").value ? num("wh02_height") : null,
+
+                    big_truck: parseInt($("big_truck").value || "0", 10),
+                    small_truck: parseInt($("small_truck").value || "0", 10),
+                    saleng_tricycle: parseInt($("saleng_tricycle").value || "0", 10),
+                    tuk_tuk: parseInt($("tuk_tuk").value || "0", 10),
+                    forklift: parseInt($("forklift").value || "0", 10),
+                    hand_lift: parseInt($("hand_lift").value || "0", 10),
+                };
+
+                const { error } = await supabase.from("competitor_info").insert(payload);
+                if (error) throw error;
+
+                $("status").value = "Saved successfully";
+                setMsg("Submit successful ✅ Data + location saved");
+
+                alert("Submit successful ✅ Data + location saved");
+                await hardRefreshAfterSubmit();
+
+            } catch (e) {
+                setMsg("Submit failed: " + (e?.message || e), false);
+            } finally {
+                btn.classList.remove("btn-loading");
+                btn.disabled = false;
+            }
+        });
+
+        // ===== Export =====
+        async function ensureExportLogin() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) return true;
+
+            const email = prompt("Export (admin only): Enter Email");
+            if (!email) return false;
+            const password = prompt("Enter Password");
+            if (!password) return false;
+
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                alert("Export login failed: " + error.message);
+                return false;
+            }
+            return true;
+        }
+
+        $("btnExport").addEventListener("click", async () => {
+            const btn = $("btnExport");
+            btn.disabled = true;
+
+            try {
+                const ok = await ensureExportLogin();
+                if (!ok) {
+                    $("exportMsg").textContent = "Export cancelled";
+                    return;
+                }
+
+                if (typeof XLSX === "undefined") {
+                    $("exportMsg").textContent = "Export failed: XLSX is not loaded (XLSX is undefined) — check xlsx CDN";
+                    return;
+                }
+
+                $("exportMsg").textContent = "Fetching data...";
+
+                const { data, error } = await supabase
+                    .from("competitor_info")
+                    .select("*")
+                    .order("created_at", { ascending: false });
+
+                if (error) throw error;
+
+                $("exportMsg").textContent = "Loading lookup tables...";
+
+                const [positions, names, types, provinces, districts, areas] = await Promise.all([
+                    supabase.from("positions").select("id,label").then(r => r.data || []),
+                    supabase.from("competitor_names").select("id,label").then(r => r.data || []),
+                    supabase.from("competitor_types").select("id,label").then(r => r.data || []),
+                    supabase.from("provinces").select("id,label").then(r => r.data || []),
+                    supabase.from("districts").select("id,label").then(r => r.data || []),
+                    supabase.from("areas").select("id,label").then(r => r.data || []),
+                ]);
+
+                const posMap = Object.fromEntries(positions.map(x => [x.id, x.label]));
+                const nameMap = Object.fromEntries(names.map(x => [x.id, x.label]));
+                const typeMap = Object.fromEntries(types.map(x => [x.id, x.label]));
+                const provMap = Object.fromEntries(provinces.map(x => [x.id, x.label]));
+                const distMap = Object.fromEntries(districts.map(x => [x.id, x.label]));
+                const areaMap = Object.fromEntries(areas.map(x => [x.id, x.label]));
+
+                $("exportMsg").textContent = "Creating Excel...";
+
+                const headers = [
+                    "#",
+                    "Position", "Name", "Type",
+                    "Dist Name", "Contact Number", "Village",
+                    "District", "Province", "Area",
+                    "DSD Truck", "Salesman",
+                    "GPS Lat", "GPS Lng",
+                    "Beer", "DW", "CSD", "Energy", "Sales Total",
+                    "WH01 Width (m)", "WH01 Length (m)", "WH01 Height (m)", "WH01 Size (m²)", "WH01 Capacity (Cases)",
+                    "WH02 Width (m)", "WH02 Length (m)", "WH02 Height (m)", "WH02 Size (m²)", "WH02 Capacity (Cases)",
+                    "Total Capacity (Cases)",
+                    "Big Truck", "Small Truck", "Sa leng (Tricycle)", "Tuk Tuk", "Forklift", "Hand-lift", "Total Vehicles",
+                    "Created At"
+                ];
+
+                const rows = (data || []).map((r, idx) => {
+                    const beer = r.beer ?? 0;
+                    const dw = r.dw ?? 0;
+                    const csd = r.csd ?? 0;
+                    const energy = r.energy ?? 0;
+                    const sales_total = beer + dw + csd + energy;
+
+                    const wh01_width = r.wh01_width ?? 0;
+                    const wh01_length = r.wh01_length ?? 0;
+                    const wh01_height = r.wh01_height ?? 0;
+                    const wh01_size_m2 = wh01_width * wh01_length;
+                    const wh01_capacity_cases = ((wh01_size_m2 / 1.2) * 90 * 2) * 0.7;
+
+                    const wh02_width = r.wh02_width ?? 0;
+                    const wh02_length = r.wh02_length ?? 0;
+                    const wh02_height = r.wh02_height ?? 0;
+                    const wh02_size_m2 = wh02_width * wh02_length;
+                    const wh02_capacity_cases = ((wh02_size_m2 / 1.2) * 90 * 2) * 0.7;
+
+                    const total_capacity_case = wh01_capacity_cases + wh02_capacity_cases;
+
+                    const big_truck = r.big_truck ?? 0;
+                    const small_truck = r.small_truck ?? 0;
+                    const saleng_tricycle = r.saleng_tricycle ?? 0;
+                    const tuk_tuk = r.tuk_tuk ?? 0;
+                    const forklift = r.forklift ?? 0;
+                    const hand_lift = r.hand_lift ?? 0;
+                    const total_vehicles = big_truck + small_truck + saleng_tricycle + tuk_tuk + forklift + hand_lift;
+
+                    return [
+                        idx + 1,
+                        posMap[r.position_id] ?? r.position_id ?? "",
+                        nameMap[r.name_id] ?? r.name_id ?? "",
+                        typeMap[r.type_id] ?? r.type_id ?? "",
+                        r.dist_name ?? "",
+                        r.contact_number ?? "",
+                        r.village ?? "",
+                        distMap[r.district_id] ?? r.district_id ?? "",
+                        provMap[r.province_id] ?? r.province_id ?? "",
+                        areaMap[r.area_id] ?? r.area_id ?? "",
+                        r.dsd_truck ?? "",
+                        r.salesman ?? "",
+                        r.gps_lat ?? "",
+                        r.gps_lng ?? "",
+                        beer, dw, csd, energy, sales_total.toFixed(2),
+                        wh01_width || "", wh01_length || "", wh01_height || "", (wh01_size_m2 ? wh01_size_m2.toFixed(2) : ""), (wh01_capacity_cases ? wh01_capacity_cases.toFixed(2) : ""),
+                        wh02_width || "", wh02_length || "", wh02_height || "", (wh02_size_m2 ? wh02_size_m2.toFixed(2) : ""), (wh02_capacity_cases ? wh02_capacity_cases.toFixed(2) : ""),
+                        (total_capacity_case ? total_capacity_case.toFixed(2) : ""),
+                        big_truck, small_truck, saleng_tricycle, tuk_tuk, forklift, hand_lift, total_vehicles,
+                        r.created_at ?? ""
+                    ];
+                });
+
+                const aoa = [headers, ...rows];
+                const ws = XLSX.utils.aoa_to_sheet(aoa);
+                ws["!cols"] = headers.map((h) => ({ wch: Math.min(Math.max(h.length + 2, 12), 28) }));
+
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Competitor Info");
+                XLSX.writeFile(wb, "competitor_report.xlsx");
+
+                $("exportMsg").textContent = `Export successful ✅ (${rows.length} records)`;
+            } catch (e) {
+                $("exportMsg").textContent = "Export failed: " + (e?.message || e);
+            } finally {
+                setTimeout(() => (btn.disabled = false), 800);
+            }
+        });
+
+        // ===== Register Service Worker (safe update) =====
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(async (reg) => {
+                        try { await reg.update(); } catch (e) { }
+                    })
+                    .catch(err => console.log('SW registration failed', err));
+            });
+        }
+
+        // ===== Boot =====
+        async function boot() {
+            try {
+                await refreshDropdowns();
+            } catch (e) {
+                setMsg("Failed to load dropdowns: " + (e?.message || e), false);
+            }
+            calcSales();
+            calcWH("wh01");
+            calcWH("wh02");
+            calcTotalCap();
+            calcVehicles();
+        }
+
+        await boot();
+    </script>
+</body>
+
+</html>
