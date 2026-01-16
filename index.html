@@ -1213,7 +1213,17 @@
 
                 const { data, error } = await supabase
                     .from("competitor_info")
-                    .select("*")
+                    .select(`
+                        id, created_at,
+                        position_id, name_id, type_id, area_id,
+                        dist_name, contact_number, village, district_id, province_id,
+                        dsd_truck, salesman,
+                        gps_lat, gps_lng,
+                        beer, dw, csd, energy,
+                        wh01_width, wh01_length, wh01_height,
+                        wh02_width, wh02_length, wh02_height,
+                        big_truck, small_truck, saleng_tricycle, tuk_tuk, forklift, hand_lift
+                    `)
                     .order("created_at", { ascending: false })
                     .range(from, from + pageSize - 1);
 
@@ -1319,7 +1329,10 @@
             } catch (e) {
                 console.error(e);
                 $("exportMsg").textContent = "Export failed: " + (e?.message || e);
-                alert("Export Failed: " + (e?.message || e));
+                console.error(e);
+                const errMsg = (e?.message || e) + (e?.code ? ` (${e.code})` : "") + (e?.details ? `\n${e.details}` : "");
+                $("exportMsg").textContent = "Export failed: " + errMsg;
+                alert("Export Failed: " + errMsg);
             } finally {
                 setTimeout(() => (btn.disabled = false), 1000);
             }
