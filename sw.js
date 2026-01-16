@@ -1,4 +1,4 @@
-const CACHE_NAME = 'comp-form-v3 COMP_FIX_VERSION';
+const CACHE_NAME = 'comp-form-v5-api-no-cache';
 
 // cache เฉพาะไฟล์ local ที่คุณคุมได้ (สำคัญ: อย่า cache CDN แบบตายตัว)
 const APP_SHELL = [
@@ -33,6 +33,10 @@ self.addEventListener('fetch', (event) => {
     if (req.method !== 'GET') return;
 
     const url = new URL(req.url);
+
+    // 0) IGNORE SUPABASE API (Network Only)
+    // Fix: Export Excel fetches fresh data from Supabase
+    if (url.hostname.includes('supabase.co')) return;
 
     // ===== 1) NAVIGATION / HTML : NETWORK FIRST =====
     // อันนี้คือหัวใจแก้ "ไม่รีเฟรช"
