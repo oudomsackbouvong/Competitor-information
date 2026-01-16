@@ -5,7 +5,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Competitor Info System</title>
-    <link rel="manifest" href="manifest.json">
+
+    <!-- ✅ use absolute paths -->
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#2563eb">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
 
@@ -216,12 +218,6 @@
             gap: 12px;
         }
 
-        .grid2 {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-        }
-
         @media (max-width: 980px) {
             .grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -386,9 +382,7 @@
         }
 
         @media (max-width: 560px) {
-
-            .grid,
-            .grid2 {
+            .grid {
                 grid-template-columns: 1fr;
             }
 
@@ -448,6 +442,35 @@
 </head>
 
 <body>
+
+    <!-- ✅ Error overlay (shows JS errors on mobile) -->
+    <script>
+        (function () {
+            const box = document.createElement('pre');
+            box.id = "__errbox";
+            box.style.cssText =
+                'position:fixed;left:8px;right:8px;bottom:8px;max-height:40vh;overflow:auto;' +
+                'z-index:999999;background:rgba(17,17,17,.95);color:#00ff7f;padding:10px;border-radius:10px;' +
+                'font-size:12px;white-space:pre-wrap;display:none;border:1px solid rgba(255,255,255,.15);';
+            document.addEventListener("DOMContentLoaded", () => document.body.appendChild(box));
+
+            function show(msg) {
+                box.style.display = 'block';
+                box.textContent += msg + '\n';
+            }
+            window.__show = show;
+
+            window.addEventListener('error', (e) => {
+                show('[error] ' + (e.message || e.error));
+                show('  at ' + (e.filename || '') + ':' + (e.lineno || '') + ':' + (e.colno || ''));
+            });
+
+            window.addEventListener('unhandledrejection', (e) => {
+                show('[promise] ' + (e.reason?.message || e.reason));
+            });
+        })();
+    </script>
+
     <div class="container">
         <div class="topbar">
             <div class="brand">
@@ -461,6 +484,9 @@
             <div class="whoami" id="whoami">
                 <span class="pill"><i class="fa-solid fa-globe"></i> Public Mode</span>
                 <span class="pill"><i class="fa-solid fa-mobile-screen"></i> Mobile Friendly</span>
+                <button id="btnFixCache" class="btn btn-ghost" type="button" style="padding:8px 10px;">
+                    <i class="fa-solid fa-broom"></i> Fix Cache
+                </button>
             </div>
         </div>
 
@@ -490,7 +516,8 @@
                             <p class="card-sub">Dropdowns loaded from Supabase / GPS saved on Submit</p>
                         </div>
                         <div class="pill"><i class="fa-solid fa-circle-info"></i> Fill all required fields and pin
-                            location before Submit</div>
+                            location before
+                            Submit</div>
                     </div>
 
                     <div class="grid">
@@ -840,33 +867,53 @@
     <script type="module">
         import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+        // ==== config
         const SUPABASE_URL = "https://comtippafialzqwcdduo.supabase.co";
         const SUPABASE_KEY = "sb_publishable_GYS2jPKnXZqZtaiaTAZ7OA_de9WET-2";
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const $ = (id) => document.getElementById(id);
-        const setMsg = (t, ok = true) => { $("msg").textContent = t; $("msg").className = ok ? "muted ok" : "muted err"; };
+        const setMsg = (t, ok = true) => {
+            const el = $("msg");
+            el.textContent = t;
+            el.className = ok ? "muted ok" : "muted err";
+        };
         const num = (id) => Number($(id).value || 0);
 
-        // ===== Hard refresh that REALLY clears state =====
+        // ===== Fix Cache button (for mobile users)
+        $("btnFixCache").addEventListener("click", async () => {
+            try {
+                setMsg("Clearing cache / service worker...", true);
+
+                try {
+                    if ("caches" in window) {
+                        const keys = await caches.keys();
+                        await Promise.all(keys.map(k => caches.delete(k)));
+                    }
+                } catch (e) { }
+
+                try {
+                    if ("serviceWorker" in navigator) {
+                        const regs = await navigator.serviceWorker.getRegistrations();
+                        await Promise.all(regs.map(r => r.unregister()));
+                    }
+                } catch (e) { }
+
+                setMsg("Cache cleared. Reloading...", true);
+                const base = window.location.origin + window.location.pathname;
+                window.location.replace(base + "?r=" + Date.now());
+            } catch (e) {
+                setMsg("Fix cache failed: " + (e?.message || e), false);
+            }
+        });
+
+        // ===== Hard refresh (used after submit)
         async function hardRefreshAfterSubmit() {
             try { localStorage.removeItem("competitor_form_draft"); } catch (e) { }
             try { sessionStorage.clear(); } catch (e) { }
 
-            try {
-                if ("caches" in window) {
-                    const keys = await caches.keys();
-                    await Promise.all(keys.map(k => caches.delete(k)));
-                }
-            } catch (e) { }
-
-            try {
-                if ("serviceWorker" in navigator) {
-                    const regs = await navigator.serviceWorker.getRegistrations();
-                    await Promise.all(regs.map(r => r.unregister()));
-                }
-            } catch (e) { }
-
+            // NOTE: Do NOT aggressively delete caches/register on every submit for mobile stability
+            // Keep it simple and just reload with cache-busting param.
             const base = window.location.origin + window.location.pathname;
             window.location.replace(base + "?r=" + Date.now());
         }
@@ -878,7 +925,7 @@
             calcSales();
         };
 
-        // ===== Form calculations =====
+        // ===== Form calculations
         function calcSales() { $("sales_total").value = (num("beer") + num("dw") + num("csd") + num("energy")).toFixed(2); }
 
         function calcWH(prefix) {
@@ -901,17 +948,14 @@
         ["wh02_width", "wh02_length", "wh02_height"].forEach(id => $(id).addEventListener("input", () => { calcWH("wh02"); calcTotalCap(); }));
         ["big_truck", "small_truck", "saleng_tricycle", "tuk_tuk", "forklift", "hand_lift"].forEach(id => $(id).addEventListener("input", calcVehicles));
 
-        // ===== Map =====
-        const map = L.map("map", { tap: true }).setView([17.9757, 102.6331], 12);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
-
+        // ===== Map (mobile safe init)
+        let map = null;
         let marker = null;
         let pinEditMode = false;
         let pendingLatLng = null;
 
-        setTimeout(() => map.invalidateSize(), 250);
-
         function setPin(lat, lng) {
+            if (!map) return;
             if (marker) marker.remove();
             marker = L.marker([lat, lng], { draggable: true }).addTo(map);
 
@@ -945,18 +989,36 @@
         $("confirmYes").addEventListener("click", () => {
             if (!pendingLatLng) return closeConfirm();
             setPin(pendingLatLng.lat, pendingLatLng.lng);
-            map.setView([pendingLatLng.lat, pendingLatLng.lng], Math.max(map.getZoom(), 16));
+            map && map.setView([pendingLatLng.lat, pendingLatLng.lng], Math.max(map.getZoom(), 16));
             pinEditMode = false;
             closeConfirm();
         });
 
-        map.on("click", (e) => {
-            if (marker && !pinEditMode) {
-                $("status").value = "Click 'Edit pin' first to place a new pin";
-                return;
+        function initMapSafely() {
+            try {
+                // create map
+                map = L.map("map", { tap: true }).setView([17.9757, 102.6331], 12);
+                L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+
+                map.on("click", (e) => {
+                    if (marker && !pinEditMode) {
+                        $("status").value = "Click 'Edit pin' first to place a new pin";
+                        return;
+                    }
+                    openConfirm(e.latlng.lat, e.latlng.lng);
+                });
+
+                // invalidate size after layout settles (better than fixed timeout)
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                    try { map.invalidateSize(); } catch (e) { }
+                }));
+
+            } catch (e) {
+                console.error("Map init failed", e);
+                window.__show && window.__show("Map init failed: " + (e?.message || e));
+                setMsg("Map failed to load on this device/browser", false);
             }
-            openConfirm(e.latlng.lat, e.latlng.lng);
-        });
+        }
 
         $("btnEditPin").addEventListener("click", () => {
             pinEditMode = true;
@@ -971,8 +1033,8 @@
                     const { latitude, longitude } = pos.coords;
                     openConfirm(latitude, longitude);
                 },
-                () => setMsg("Could not get location (permission denied?)", false),
-                { enableHighAccuracy: true, timeout: 10000 }
+                (err) => setMsg("Could not get location: " + (err?.message || "permission denied?"), false),
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
             );
         });
 
@@ -992,7 +1054,7 @@
             el.addEventListener("paste", (ev) => ev.preventDefault());
         });
 
-        // ===== Dropdowns =====
+        // ===== Dropdowns
         async function loadNamesByPosition(positionId) {
             const sel = $("name_id");
             sel.innerHTML = `<option value="">-- Loading... --</option>`;
@@ -1024,6 +1086,7 @@
                 sel.disabled = false;
             } catch (error) {
                 console.error("Error loading names:", error);
+                window.__show && window.__show("loadNamesByPosition: " + (error?.message || error));
                 sel.innerHTML = `<option value="">-- Failed to load --</option>`;
                 setMsg("Failed to load Name: " + (error?.message || error), false);
             }
@@ -1060,6 +1123,7 @@
                 sel.disabled = false;
             } catch (error) {
                 console.error("Error loading districts:", error);
+                window.__show && window.__show("loadDistrictsByProvince: " + (error?.message || error));
                 sel.innerHTML = `<option value="">-- Failed to load --</option>`;
                 setMsg("Failed to load District: " + (error?.message || error), false);
             }
@@ -1093,10 +1157,9 @@
             }
         }
 
-        // ===== Submit =====
+        // ===== Submit
         $("btnSubmit").addEventListener("click", async () => {
             const btn = $("btnSubmit");
-
             try {
                 const lat = $("gps_lat").value, lng = $("gps_lng").value;
                 if (!lat || !lng) return setMsg("Please place a pin before Submit to save Latitude/Longitude", false);
@@ -1153,6 +1216,8 @@
                 await hardRefreshAfterSubmit();
 
             } catch (e) {
+                console.error(e);
+                window.__show && window.__show("Submit failed: " + (e?.message || e));
                 setMsg("Submit failed: " + (e?.message || e), false);
             } finally {
                 btn.classList.remove("btn-loading");
@@ -1160,7 +1225,7 @@
             }
         });
 
-        // ===== Export (FIXED: no stack depth + fetch all) =====
+        // ===== Export
         async function ensureExportLogin() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) return true;
@@ -1204,7 +1269,7 @@
         }
 
         async function fetchAllCompetitorInfoPaged() {
-            const pageSize = 250; // Reduce from 2000 to 250 to avoid RLS recursion/stack depth limits
+            const pageSize = 250;
             let all = [];
             let from = 0;
 
@@ -1214,16 +1279,16 @@
                 const { data, error } = await supabase
                     .from("competitor_info")
                     .select(`
-                        id, created_at,
-                        position_id, name_id, type_id, area_id,
-                        dist_name, contact_number, village, district_id, province_id,
-                        dsd_truck, salesman,
-                        gps_lat, gps_lng,
-                        beer, dw, csd, energy,
-                        wh01_width, wh01_length, wh01_height,
-                        wh02_width, wh02_length, wh02_height,
-                        big_truck, small_truck, saleng_tricycle, tuk_tuk, forklift, hand_lift
-                    `)
+            id, created_at,
+            position_id, name_id, type_id, area_id,
+            dist_name, contact_number, village, district_id, province_id,
+            dsd_truck, salesman,
+            gps_lat, gps_lng,
+            beer, dw, csd, energy,
+            wh01_width, wh01_length, wh01_height,
+            wh02_width, wh02_length, wh02_height,
+            big_truck, small_truck, saleng_tricycle, tuk_tuk, forklift, hand_lift
+          `)
                     .order("created_at", { ascending: false })
                     .range(from, from + pageSize - 1);
 
@@ -1231,7 +1296,6 @@
                 if (!data || data.length === 0) break;
 
                 all = all.concat(data);
-
                 if (data.length < pageSize) break;
                 from += pageSize;
             }
@@ -1243,7 +1307,6 @@
             const btn = $("btnExport");
             btn.disabled = true;
             try {
-                // 1. Verify Login
                 const loggedIn = await ensureExportLogin();
                 if (!loggedIn) {
                     alert("Admin login required to export.");
@@ -1251,8 +1314,7 @@
                 }
 
                 $("exportMsg").textContent = "Fetching data...";
-                const data = await fetchAllCompetitorInfoPaged(); // fetch all safely
-
+                const data = await fetchAllCompetitorInfoPaged();
                 if (!data || data.length === 0) {
                     alert("No data found to export.");
                     return;
@@ -1260,7 +1322,6 @@
 
                 $("exportMsg").textContent = "Preparing Excel...";
 
-                // 1.5 Load Lookup Maps (Fix for posMap undefined)
                 const [positions, names, types, provinces, districts, areas] = await Promise.all([
                     supabase.from("positions").select("id,label").then(r => r.data || []),
                     supabase.from("competitor_names").select("id,label").then(r => r.data || []),
@@ -1277,11 +1338,9 @@
                 const distMap = Object.fromEntries(districts.map(x => [x.id, x.label]));
                 const areaMap = Object.fromEntries(areas.map(x => [x.id, x.label]));
 
-                // 2. Dynamic Headers (Get all unique keys from all records)
                 const allKeys = new Set();
                 data.forEach(r => Object.keys(r).forEach(k => allKeys.add(k)));
 
-                // Sort keys: priority keys first
                 const priority = ["id", "created_at", "position_id", "name_id", "type_id", "province_id", "district_id"];
                 const sortedKeys = Array.from(allKeys).sort((a, b) => {
                     const ia = priority.indexOf(a);
@@ -1292,45 +1351,38 @@
                     return a.localeCompare(b);
                 });
 
-                // 3. Map Data
                 const rows = data.map(r => {
                     return sortedKeys.map(k => {
                         let v = r[k];
-
-                        // Map IDs to Labels
                         if (k === "position_id") v = posMap[v] ?? v;
                         if (k === "name_id") v = nameMap[v] ?? v;
                         if (k === "type_id") v = typeMap[v] ?? v;
                         if (k === "province_id") v = provMap[v] ?? v;
                         if (k === "district_id") v = distMap[v] ?? v;
                         if (k === "area_id") v = areaMap[v] ?? v;
-
                         return toExcelValue(v);
                     });
                 });
 
-                // 4. Create Workbook
                 const headers = sortedKeys;
                 const wb = XLSX.utils.book_new();
 
-                // Split into sheets of 2,000 for safety (reduced from 5000 to prevent stack limits)
                 const chunkSize = 2000;
                 for (let i = 0; i < rows.length; i += chunkSize) {
                     const chunk = rows.slice(i, i + chunkSize);
-                    // Avoid spread operator ...chunk which can exceed stack limit
                     const wsData = [headers].concat(chunk);
                     const ws = XLSX.utils.aoa_to_sheet(wsData);
-                    ws["!cols"] = headers.map(h => ({ wch: 15 }));
+                    ws["!cols"] = headers.map(() => ({ wch: 15 }));
                     XLSX.utils.book_append_sheet(wb, ws, `Data ${Math.floor(i / chunkSize) + 1}`);
                 }
 
                 XLSX.writeFile(wb, `competitor_export_${Date.now()}.xlsx`);
                 $("exportMsg").textContent = `Export successful ✅ (${data.length} records)`;
+
             } catch (e) {
                 console.error(e);
-                $("exportMsg").textContent = "Export failed: " + (e?.message || e);
-                console.error(e);
-                const errMsg = (e?.message || e) + (e?.code ? ` (${e.code})` : "") + (e?.details ? `\n${e.details}` : "");
+                window.__show && window.__show("Export failed: " + (e?.message || e));
+                const errMsg = (e?.message || e) + (e?.details ? `\n${e.details}` : "");
                 $("exportMsg").textContent = "Export failed: " + errMsg;
                 alert("Export Failed: " + errMsg);
             } finally {
@@ -1338,24 +1390,32 @@
             }
         });
 
-        // ===== Register Service Worker (safe update) =====
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(async (reg) => {
-                        try { await reg.update(); } catch (e) { }
-                    })
-                    .catch(err => console.log('SW registration failed', err));
+        // ✅ Register SW safely (absolute path), and don't crash if it fails
+        // If you still suspect SW causes issues, comment out this whole block.
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("/sw.js")
+                    .then(async (reg) => { try { await reg.update(); } catch (e) { } })
+                    .catch(err => {
+                        console.log("SW registration failed", err);
+                        window.__show && window.__show("SW registration failed: " + (err?.message || err));
+                    });
             });
         }
 
-        // ===== Boot =====
+        // ===== Boot
         async function boot() {
             try {
+                window.__show && window.__show("boot start");
                 await refreshDropdowns();
             } catch (e) {
+                window.__show && window.__show("refreshDropdowns failed: " + (e?.message || e));
                 setMsg("Failed to load dropdowns: " + (e?.message || e), false);
             }
+
+            // init map after UI paints (mobile friendly)
+            requestAnimationFrame(() => requestAnimationFrame(() => initMapSafely()));
+
             calcSales();
             calcWH("wh01");
             calcWH("wh02");
