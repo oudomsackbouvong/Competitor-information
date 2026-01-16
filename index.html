@@ -1286,7 +1286,6 @@
                 const rows = data.map(r => {
                     return sortedKeys.map(k => {
                         let v = r[k];
-                        if (v === null || v === undefined) return "";
 
                         // Map IDs to Labels
                         if (k === "position_id") v = posMap[v] ?? v;
@@ -1296,8 +1295,7 @@
                         if (k === "district_id") v = distMap[v] ?? v;
                         if (k === "area_id") v = areaMap[v] ?? v;
 
-                        if (typeof v === "object") return JSON.stringify(v);
-                        return v;
+                        return toExcelValue(v);
                     });
                 });
 
