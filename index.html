@@ -1204,7 +1204,7 @@
         }
 
         async function fetchAllCompetitorInfoPaged() {
-            const pageSize = 2000; // ปรับได้ 1000/2000/5000
+            const pageSize = 250; // Reduce from 2000 to 250 to avoid RLS recursion/stack depth limits
             let all = [];
             let from = 0;
 
