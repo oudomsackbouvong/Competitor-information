@@ -1303,11 +1303,13 @@
                 const headers = sortedKeys;
                 const wb = XLSX.utils.book_new();
 
-                // Split into sheets of 5,000 for safety
-                const chunkSize = 5000;
+                // Split into sheets of 2,000 for safety (reduced from 5000 to prevent stack limits)
+                const chunkSize = 2000;
                 for (let i = 0; i < rows.length; i += chunkSize) {
                     const chunk = rows.slice(i, i + chunkSize);
-                    const ws = XLSX.utils.aoa_to_sheet([headers, ...chunk]);
+                    // Avoid spread operator ...chunk which can exceed stack limit
+                    const wsData = [headers].concat(chunk);
+                    const ws = XLSX.utils.aoa_to_sheet(wsData);
                     ws["!cols"] = headers.map(h => ({ wch: 15 }));
                     XLSX.utils.book_append_sheet(wb, ws, `Data ${Math.floor(i / chunkSize) + 1}`);
                 }
